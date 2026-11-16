@@ -3,6 +3,7 @@ import type { ModelDefinition, OcrPageResult } from '../../types/ocr';
 import {
   downloadAndCacheModel,
   getCachedArtifactBuffer,
+  getLocalExternalData,
 } from '../../utils/modelCache';
 import {
   rgbaToNormalizedChwTensor,
@@ -54,22 +55,23 @@ export class WebGpuVlmEngine implements IOcrEngine {
       throw new Error('Failed to load WebGPU VLM model buffers from browser cache.');
     }
 
+    const externalData = await getLocalExternalData(model.id);
+    const sessionOpts: ort.InferenceSession.SessionOptions = {
+      executionProviders: ['webgpu', 'wasm'],
+      graphOptimizationLevel: 'all',
+      ...(externalData.length > 0 ? { externalData } : {}),
+    };
+
     onProgress('initializing', 'Compiling VLM Vision Encoder on WebGPU...', 82);
     this.encoderSession = await ort.InferenceSession.create(
       new Uint8Array(encoderBuf),
-      {
-        executionProviders: ['webgpu', 'wasm'],
-        graphOptimizationLevel: 'all',
-      },
+      sessionOpts,
     );
 
     onProgress('initializing', 'Compiling VLM Markdown Decoder on WebGPU...', 94);
     this.decoderSession = await ort.InferenceSession.create(
       new Uint8Array(decoderBuf),
-      {
-        executionProviders: ['webgpu', 'wasm'],
-        graphOptimizationLevel: 'all',
-      },
+      sessionOpts,
     );
 
     onProgress('initializing', 'WebGPU VLM Engine ready.', 100);

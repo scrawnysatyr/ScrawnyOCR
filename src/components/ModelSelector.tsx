@@ -170,7 +170,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                     }}
                     type="file"
                     multiple
-                    accept=".onnx,.txt,.json"
+                    accept=".onnx,.txt,.json,.zip"
                     className="hidden"
                     onChange={(e) => {
                       if (e.target.files && e.target.files.length > 0) {

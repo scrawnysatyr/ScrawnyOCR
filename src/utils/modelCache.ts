@@ -1,3 +1,4 @@
+import { unzipSync } from 'fflate';
 import type {
   CachedModelInfo,
   ModelArtifact,
@@ -7,6 +8,7 @@ import type {
 const CACHE_NAME = 'scrawny-ocr-models-v1';
 const DB_NAME = 'scrawny-ocr-cache-meta';
 const STORE_NAME = 'artifacts';
+const LOCAL_ORIGIN = 'https://local.scrawnyocr';
 
 interface ArtifactMetaRecord {
   key: string;
@@ -277,6 +279,40 @@ export async function getCachedArtifactBuffer(
   return match.arrayBuffer();
 }
 
+interface ExternalDataManifestEntry {
+  path: string;
+  url: string;
+}
+
+function getManifestUrl(modelId: string): string {
+  return `${LOCAL_ORIGIN}/${encodeURIComponent(modelId)}/ext-manifest.json`;
+}
+
+/**
+ * Loads any external-data tensor buffers cached from a local .zip import.
+ */
+export async function getLocalExternalData(
+  modelId: string,
+): Promise<Array<{ path: string; data: Uint8Array }>> {
+  if (!('caches' in self)) return [];
+  const cache = await caches.open(CACHE_NAME);
+  const manifestRes = await cache.match(getManifestUrl(modelId));
+  if (!manifestRes) return [];
+
+  const entries = (await manifestRes.json()) as ExternalDataManifestEntry[];
+  const result: Array<{ path: string; data: Uint8Array }> = [];
+  for (const entry of entries) {
+    const res = await cache.match(entry.url);
+    if (res) {
+      result.push({
+        path: entry.path,
+        data: new Uint8Array(await res.arrayBuffer()),
+      });
+    }
+  }
+  return result;
+}
+
 /**
  * Deletes cached artifacts for a single model.
  */
@@ -286,6 +322,17 @@ export async function deleteModelCache(model: ModelDefinition): Promise<void> {
     for (const artifact of model.artifacts) {
       await cache.delete(artifact.url);
       await deleteArtifactMeta(artifact.key);
+    }
+
+    const manifestUrl = getManifestUrl(model.id);
+    const manifestRes = await cache.match(manifestUrl);
+    if (manifestRes) {
+      const entries = (await manifestRes.json()) as ExternalDataManifestEntry[];
+      for (const entry of entries) {
+        await cache.delete(entry.url);
+        await deleteArtifactMeta(`${model.id}:ext:${entry.path}`);
+      }
+      await cache.delete(manifestUrl);
     }
   }
 }
@@ -303,8 +350,47 @@ export async function clearAllModelCaches(): Promise<void> {
   }
 }
 
+interface LocalEntry {
+  name: string;
+  buffer: () => Promise<ArrayBuffer>;
+}
+
+async function expandSelectedFiles(files: FileList | File[]): Promise<{
+  entries: LocalEntry[];
+  hadZip: boolean;
+}> {
+  const entries: LocalEntry[] = [];
+  let hadZip = false;
+
+  for (const file of Array.from(files)) {
+    if (file.name.toLowerCase().endsWith('.zip')) {
+      hadZip = true;
+      const zipBytes = new Uint8Array(await file.arrayBuffer());
+      const unzipped = unzipSync(zipBytes);
+      for (const [rawPath, data] of Object.entries(unzipped)) {
+        // Skip directory entries and macOS metadata
+        if (rawPath.endsWith('/') || rawPath.startsWith('__MACOSX/')) continue;
+        const baseName = rawPath.split('/').pop() || rawPath;
+        if (!baseName) continue;
+        const copy = new Uint8Array(data);
+        entries.push({
+          name: baseName,
+          buffer: async () => copy.buffer,
+        });
+      }
+    } else {
+      entries.push({
+        name: file.name,
+        buffer: () => file.arrayBuffer(),
+      });
+    }
+  }
+
+  return { entries, hadZip };
+}
+
 /**
- * Imports local .onnx / model files selected by the user directly into
+ * Imports local .onnx / .zip / model files selected by the user directly into
  * persistent Cache Storage + IndexedDB metadata without needing a remote URL.
  */
 export async function importLocalModelFiles(
@@ -313,27 +399,53 @@ export async function importLocalModelFiles(
 ): Promise<number> {
   await requestPersistentStorage();
   const cache = await caches.open(CACHE_NAME);
-  const fileArray = Array.from(files);
+  const { entries, hadZip } = await expandSelectedFiles(files);
+
+  const onnxEntries = entries.filter((e) => e.name.toLowerCase().endsWith('.onnx'));
+  if (hadZip && onnxEntries.length === 0) {
+    throw new Error(
+      'No .onnx graph file found in zip (only external weight tensors). Re-export in Colab with the .onnx graph included.',
+    );
+  }
+
+  const usedEntries = new Set<LocalEntry>();
   let importedCount = 0;
 
   for (let i = 0; i < model.artifacts.length; i++) {
     const artifact = model.artifacts[i];
-    // Match by filename substring or fallback to positional order
-    const matchedFile =
-      fileArray.find((f) => {
-        const name = f.name.toLowerCase();
+    const matchedEntry =
+      entries.find((e) => {
+        if (usedEntries.has(e)) return false;
+        const name = e.name.toLowerCase();
         if (artifact.key.includes('vision') || artifact.key.includes('det')) {
-          return name.includes('vision') || name.includes('encoder') || name.includes('det');
+          return (
+            name.endsWith('.onnx') &&
+            (name.includes('vision') || name.includes('encoder') || name.includes('det'))
+          );
         }
         if (artifact.key.includes('decoder') || artifact.key.includes('rec')) {
-          return name.includes('decoder') || name.includes('rec');
+          return (
+            name.endsWith('.onnx') &&
+            (name.includes('decoder') || name.includes('rec'))
+          );
+        }
+        if (artifact.key.includes('dict')) {
+          return name.endsWith('.txt');
+        }
+        if (artifact.key.includes('cfg')) {
+          return name.endsWith('.json');
         }
         return false;
-      }) ?? fileArray[i];
+      }) ??
+      onnxEntries.find((e) => !usedEntries.has(e)) ??
+      (onnxEntries.length === 1 && artifact.label.toLowerCase().includes('.onnx')
+        ? onnxEntries[0]
+        : undefined);
 
-    if (!matchedFile) continue;
+    if (!matchedEntry) continue;
+    usedEntries.add(matchedEntry);
 
-    const buf = await matchedFile.arrayBuffer();
+    const buf = await matchedEntry.buffer();
     await cache.put(
       artifact.url,
       new Response(buf, {
@@ -348,6 +460,38 @@ export async function importLocalModelFiles(
       cachedAt: Date.now(),
     });
     importedCount++;
+  }
+
+  // Cache remaining entries (e.g. .onnx_data, loose external tensors, tokenizer.json)
+  const manifest: ExternalDataManifestEntry[] = [];
+  for (const entry of entries) {
+    if (usedEntries.has(entry)) continue;
+    const extUrl = `${LOCAL_ORIGIN}/${encodeURIComponent(model.id)}/ext/${encodeURIComponent(entry.name)}`;
+    const buf = await entry.buffer();
+    await cache.put(
+      extUrl,
+      new Response(buf, {
+        headers: { 'Content-Type': 'application/octet-stream' },
+      }),
+    );
+    await putArtifactMeta({
+      key: `${model.id}:ext:${entry.name}`,
+      modelId: model.id,
+      url: extUrl,
+      bytes: buf.byteLength,
+      cachedAt: Date.now(),
+    });
+    manifest.push({ path: entry.name, url: extUrl });
+    importedCount++;
+  }
+
+  if (manifest.length > 0) {
+    await cache.put(
+      getManifestUrl(model.id),
+      new Response(JSON.stringify(manifest), {
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
   }
 
   return importedCount;
