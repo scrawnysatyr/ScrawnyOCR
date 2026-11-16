@@ -1,0 +1,197 @@
+import React, { useRef, useState } from 'react';
+import {
+  FileText,
+  Image as ImageIcon,
+  SlidersHorizontal,
+  Trash2,
+  UploadCloud,
+} from 'lucide-react';
+import type { Translations } from '../i18n/translations';
+import type { NormalizedDocument } from '../types/ocr';
+import { formatBytes } from '../utils/modelCache';
+
+interface DropZoneProps {
+  t: Translations;
+  selectedFile: File | null;
+  normalizedDoc: NormalizedDocument | null;
+  pdfScale: number;
+  disabled: boolean;
+  onPdfScaleChange: (scale: number) => void;
+  onFileSelected: (file: File) => void;
+  onClearFile: () => void;
+}
+
+export const DropZone: React.FC<DropZoneProps> = ({
+  t,
+  selectedFile,
+  normalizedDoc,
+  pdfScale,
+  disabled,
+  onPdfScaleChange,
+  onFileSelected,
+  onClearFile,
+}) => {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (!disabled) setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (disabled) return;
+    const file = e.dataTransfer.files?.[0];
+    if (file) onFileSelected(file);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) onFileSelected(file);
+    e.target.value = '';
+  };
+
+  return (
+    <section className="rounded-2xl border border-[#2c2c36] bg-[#1c1c22]/90 p-5 shadow-lg backdrop-blur-sm">
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        onClick={() => !disabled && inputRef.current?.click()}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if ((e.key === 'Enter' || e.key === ' ') && !disabled) {
+            inputRef.current?.click();
+          }
+        }}
+        className={`group relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-8 text-center transition-all ${
+          isDragging
+            ? 'border-[#ff7300] bg-[#ff7300]/10 shadow-[0_0_24px_rgba(255,115,0,0.2)]'
+            : 'border-[#2c2c36] bg-[#141418]/70 hover:border-[#ff7300]/70 hover:bg-[#22222a]/70'
+        } ${disabled ? 'pointer-events-none opacity-60' : ''}`}
+      >
+        <input
+          ref={inputRef}
+          type="file"
+          accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"
+          className="hidden"
+          onChange={handleInputChange}
+          disabled={disabled}
+        />
+
+        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl border border-[#2c2c36] bg-[#1c1c22] text-[#ff7300] transition-transform group-hover:scale-105">
+          <UploadCloud className="h-6 w-6" />
+        </div>
+
+        <p className="text-base font-semibold text-[#f4f4f5]">{t.dropzoneTitle}</p>
+        <p className="mt-1 max-w-md text-xs text-[#a1a1aa]">{t.dropzoneSubtitle}</p>
+
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+          <span className="rounded-lg border border-[#2c2c36] bg-[#1c1c22] px-3 py-1 text-xs font-medium text-[#a1a1aa]">
+            {t.dropzoneFormats}
+          </span>
+          <span className="rounded-lg bg-[#ff7300] px-3.5 py-1 text-xs font-semibold text-[#141418] transition-colors group-hover:bg-[#ff8826]">
+            {t.browseFiles}
+          </span>
+        </div>
+      </div>
+
+      {/* PDF Scale Control */}
+      <div className="mt-4 flex flex-col gap-2 rounded-xl border border-[#2c2c36] bg-[#141418]/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-2.5">
+          <SlidersHorizontal className="mt-0.5 h-4 w-4 shrink-0 text-[#ff7300]" />
+          <div>
+            <div className="text-xs font-semibold text-[#f4f4f5]">
+              {t.pdfScaleLabel}:{' '}
+              <span className="font-mono-code text-[#ff7300]">{pdfScale.toFixed(2)}x</span>
+            </div>
+            <div className="text-[11px] text-[#71717a]">{t.pdfScaleHint}</div>
+          </div>
+        </div>
+        <input
+          type="range"
+          min={2.5}
+          max={3.0}
+          step={0.25}
+          value={pdfScale}
+          disabled={disabled}
+          onChange={(e) => onPdfScaleChange(parseFloat(e.target.value))}
+          className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-[#2c2c36] accent-[#ff7300] sm:w-44"
+        />
+      </div>
+
+      {/* Selected File Summary & Page Thumbnails */}
+      {selectedFile && (
+        <div className="mt-4 rounded-xl border border-[#2c2c36] bg-[#141418]/80 p-3.5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#ff7300]/15 text-[#ff7300]">
+                {selectedFile.type === 'application/pdf' ||
+                selectedFile.name.toLowerCase().endsWith('.pdf') ? (
+                  <FileText className="h-5 w-5" />
+                ) : (
+                  <ImageIcon className="h-5 w-5" />
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-[#f4f4f5]">
+                  {selectedFile.name}
+                </p>
+                <p className="text-xs text-[#a1a1aa]">
+                  {formatBytes(selectedFile.size)}
+                  {normalizedDoc
+                    ? ` • ${t.pagesCount(normalizedDoc.pages.length)}`
+                    : ''}
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={onClearFile}
+              disabled={disabled}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[#2c2c36] bg-[#1c1c22] px-2.5 py-1.5 text-xs font-medium text-[#a1a1aa] transition-colors hover:border-red-500/60 hover:text-red-400 disabled:opacity-50"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              {t.clearFile}
+            </button>
+          </div>
+
+          {normalizedDoc && normalizedDoc.pages.length > 0 && (
+            <div className="mt-3 flex gap-2.5 overflow-x-auto pb-1">
+              {normalizedDoc.pages.map((page) => (
+                <div
+                  key={page.pageNumber}
+                  className="w-24 shrink-0 overflow-hidden rounded-lg border border-[#2c2c36] bg-[#1c1c22]"
+                >
+                  {page.previewUrl ? (
+                    <img
+                      src={page.previewUrl}
+                      alt={t.pageLabel(page.pageNumber)}
+                      className="h-28 w-full object-cover object-top"
+                    />
+                  ) : (
+                    <div className="flex h-28 items-center justify-center text-xs text-[#71717a]">
+                      {page.width}×{page.height}
+                    </div>
+                  )}
+                  <div className="border-t border-[#2c2c36] px-1.5 py-1 text-center text-[10px] font-medium text-[#a1a1aa]">
+                    {t.pageLabel(page.pageNumber)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </section>
+  );
+};
+

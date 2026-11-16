@@ -1,0 +1,159 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #141418;
+  --bg-elevated: #1c1c22;
+  --bg-hover: #22222a;
+  --border: #2c2c36;
+  --border-hover: #ff7300;
+  --text: #f4f4f5;
+  --text-muted: #a1a1aa;
+  --text-dim: #71717a;
+  --accent: #ff7300;
+  --accent-soft: rgba(255, 115, 0, 0.14);
+  --accent-glow: rgba(255, 115, 0, 0.22);
+  --white-soft: rgba(255, 255, 255, 0.06);
+  --font-sans: "Inter", "Noto Sans Thai", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-thai-doc: "Sarabun", "Noto Sans Thai", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+html {
+  color-scheme: dark;
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+.bg-grid {
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(circle at 50% 20%, black 20%, transparent 80%);
+  -webkit-mask-image: radial-gradient(circle at 50% 20%, black 20%, transparent 80%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.bg-glow {
+  position: fixed;
+  top: -180px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 760px;
+  height: 440px;
+  background: radial-gradient(circle, rgba(255, 115, 0, 0.13) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.font-mono-code {
+  font-family: var(--font-mono);
+}
+
+.font-thai-preview {
+  font-family: var(--font-thai-doc);
+}
+
+/* Custom sleek dark scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #141418;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2c2c36;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #ff7300;
+}
+
+/* Rendered document preview table & typography */
+.ocr-preview-prose h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #f4f4f5;
+  margin: 1rem 0 0.5rem;
+  line-height: 1.45;
+  border-bottom: 1px solid #2c2c36;
+  padding-bottom: 0.35rem;
+}
+
+.ocr-preview-prose h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ff9440;
+  margin: 0.9rem 0 0.4rem;
+  line-height: 1.45;
+}
+
+.ocr-preview-prose h3 {
+  font-size: 1.08rem;
+  font-weight: 600;
+  color: #f4f4f5;
+  margin: 0.75rem 0 0.35rem;
+  line-height: 1.45;
+}
+
+.ocr-preview-prose p {
+  margin: 0.45rem 0;
+  line-height: 1.75;
+  color: #e4e4e7;
+}
+
+.ocr-preview-prose ul,
+.ocr-preview-prose ol {
+  margin: 0.45rem 0 0.65rem 1.4rem;
+  line-height: 1.75;
+  color: #e4e4e7;
+}
+
+.ocr-preview-prose ul {
+  list-style-type: disc;
+}
+
+.ocr-preview-prose ol {
+  list-style-type: decimal;
+}
+
+.ocr-preview-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.85rem 0;
+  font-size: 0.92rem;
+  background: #18181d;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ocr-preview-prose th,
+.ocr-preview-prose td {
+  border: 1px solid #2c2c36;
+  padding: 0.5rem 0.7rem;
+  text-align: left;
+  vertical-align: top;
+  line-height: 1.65;
+}
+
+.ocr-preview-prose th {
+  background: rgba(255, 115, 0, 0.14);
+  color: #ff9e4f;
+  font-weight: 600;
+}
+

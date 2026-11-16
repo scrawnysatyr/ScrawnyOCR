@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.tsbuildinfo
+thai_ocr_onnx.zip
+.env
+.env.*
+.DS_Store
+Thumbs.db
