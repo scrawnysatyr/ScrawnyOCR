@@ -311,20 +311,20 @@ export function App() {
   };
 
   return (
-    <div className="relative min-h-screen bg-[#141418] text-[#f4f4f5]">
+    <div className="relative min-h-screen bg-[#141418] text-[#f4f4f5] lg:h-dvh lg:overflow-hidden">
       <div className="bg-grid" />
       <div className="bg-glow" />
 
-      <div className="relative z-10 mx-auto flex min-h-screen max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 lg:py-8">
+      <div className="relative z-10 mx-auto flex min-h-screen max-w-[1600px] flex-col gap-3 px-4 py-3 sm:px-6 lg:h-full">
         {/* Topbar */}
-        <header className="flex flex-wrap items-center justify-between gap-4">
+        <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[#2c2c36]/70 pb-3">
           <div className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-xl border border-[#2c2c36] bg-[#1c1c22] text-[#ff7300] shadow-md">
+            <div className="grid h-9 w-9 place-items-center rounded-xl border border-[#2c2c36] bg-[#1c1c22] text-[#ff7300] shadow-md">
               <ScanText className="h-5 w-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-lg font-extrabold tracking-tight text-[#f4f4f5]">
+                <span className="text-base font-extrabold tracking-tight text-[#f4f4f5]">
                   Scrawny<span className="text-[#ff7300]">OCR</span>
                 </span>
                 <span className="hidden items-center gap-1 rounded-full border border-[#ff7300]/30 bg-[#ff7300]/10 px-2.5 py-0.5 text-[11px] font-medium text-[#ff9440] sm:inline-flex">
@@ -332,7 +332,7 @@ export function App() {
                   {t.clientSideBadge}
                 </span>
               </div>
-              <p className="text-xs text-[#a1a1aa]">{t.brandSubtitle}</p>
+              <p className="text-[11px] text-[#a1a1aa]">{t.brandSubtitle}</p>
             </div>
           </div>
 
@@ -353,85 +353,79 @@ export function App() {
           </button>
         </header>
 
-        {/* Hero */}
-        <section className="space-y-1.5">
-          <h1 className="text-2xl font-extrabold tracking-tight text-[#f4f4f5] sm:text-3xl">
-            {t.heroTitle}
-          </h1>
-          <p className="max-w-3xl text-sm leading-relaxed text-[#a1a1aa]">
-            {t.heroDesc}
-          </p>
-        </section>
+        {/* Split Workspace: Left = Input & Controls, Right = Preview & Export */}
+        <main className="grid min-h-0 flex-1 gap-4 lg:grid-cols-12">
+          {/* Left Column: Input */}
+          <div className="flex min-h-0 flex-col gap-3 lg:col-span-5 lg:overflow-y-auto lg:pr-1">
+            <DropZone
+              t={t}
+              selectedFile={selectedFile}
+              normalizedDoc={normalizedDoc}
+              pdfScale={pdfScale}
+              disabled={isProcessing}
+              onPdfScaleChange={handlePdfScaleChange}
+              onFileSelected={(file) => void handleNormalizeFile(file, pdfScale)}
+              onClearFile={handleClearFile}
+            />
 
-        {/* Step 1: Upload & Normalize */}
-        <DropZone
-          t={t}
-          selectedFile={selectedFile}
-          normalizedDoc={normalizedDoc}
-          pdfScale={pdfScale}
-          disabled={isProcessing}
-          onPdfScaleChange={handlePdfScaleChange}
-          onFileSelected={(file) => void handleNormalizeFile(file, pdfScale)}
-          onClearFile={handleClearFile}
-        />
+            <ModelSelector
+              t={t}
+              lang={lang}
+              selectedMode={selectedMode}
+              webGpuSupported={webGpuSupported}
+              persistentGranted={persistentGranted}
+              totalCacheBytes={totalCacheBytes}
+              cacheStatuses={cacheStatuses}
+              downloadingModelId={downloadingModelId}
+              downloadPercent={downloadPercent}
+              disabled={isProcessing}
+              onSelectMode={setSelectedMode}
+              onDownloadModel={(model) => void handleDownloadModel(model)}
+              onImportLocalModel={(model, files) =>
+                void handleImportLocalModel(model, files)
+              }
+              onDeleteModelCache={(model) => void handleDeleteModelCache(model)}
+              onClearAllCache={() => void handleClearAllCache()}
+            />
 
-        {/* Step 2: Model Switcher & Persistent Cache */}
-        <ModelSelector
-          t={t}
-          lang={lang}
-          selectedMode={selectedMode}
-          webGpuSupported={webGpuSupported}
-          persistentGranted={persistentGranted}
-          totalCacheBytes={totalCacheBytes}
-          cacheStatuses={cacheStatuses}
-          downloadingModelId={downloadingModelId}
-          downloadPercent={downloadPercent}
-          disabled={isProcessing}
-          onSelectMode={setSelectedMode}
-          onDownloadModel={(model) => void handleDownloadModel(model)}
-          onImportLocalModel={(model, files) =>
-            void handleImportLocalModel(model, files)
-          }
-          onDeleteModelCache={(model) => void handleDeleteModelCache(model)}
-          onClearAllCache={() => void handleClearAllCache()}
-        />
+            <div className="flex items-center justify-end gap-3">
+              <button
+                type="button"
+                disabled={!normalizedDoc || isProcessing || downloadingModelId !== null}
+                onClick={() => void handleRunOcr()}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#ff7300] px-6 py-2.5 text-sm font-bold text-[#141418] shadow-[0_0_24px_rgba(255,115,0,0.28)] transition-all hover:bg-[#ff8826] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <Play className="h-4 w-4 fill-current" />
+                {isProcessing ? t.processingOcr : t.startOcr}
+              </button>
+            </div>
 
-        {/* Run OCR Action */}
-        <div className="flex justify-end">
-          <button
-            type="button"
-            disabled={!normalizedDoc || isProcessing || downloadingModelId !== null}
-            onClick={() => void handleRunOcr()}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#ff7300] px-6 py-3 text-sm font-bold text-[#141418] shadow-[0_0_24px_rgba(255,115,0,0.28)] transition-all hover:bg-[#ff8826] disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
-          >
-            <Play className="h-4 w-4 fill-current" />
-            {isProcessing ? t.processingOcr : t.startOcr}
-          </button>
-        </div>
+            <ProgressPanel
+              t={t}
+              progress={progress}
+              isProcessing={isProcessing}
+              onCancel={handleCancelOcr}
+            />
+          </div>
 
-        {/* Progress Bar */}
-        <ProgressPanel
-          t={t}
-          progress={progress}
-          isProcessing={isProcessing}
-          onCancel={handleCancelOcr}
-        />
-
-        {/* Step 3: Preview & Export */}
-        <PreviewPane
-          t={t}
-          lang={lang}
-          markdown={resultMarkdown}
-          isExportingDocx={isExportingDocx}
-          onChangeMarkdown={setResultMarkdown}
-          onExportDocx={() => void handleExportDocx()}
-          onExportMd={handleExportMd}
-          onExportTxt={handleExportTxt}
-          onLoadSample={() => setResultMarkdown(SAMPLE_THAI_UNIFIED_DOC)}
-        />
+          {/* Right Column: Preview Output */}
+          <div className="flex min-h-0 flex-col lg:col-span-7">
+            <PreviewPane
+              t={t}
+              lang={lang}
+              markdown={resultMarkdown}
+              isExportingDocx={isExportingDocx}
+              onChangeMarkdown={setResultMarkdown}
+              onExportDocx={() => void handleExportDocx()}
+              onExportMd={handleExportMd}
+              onExportTxt={handleExportTxt}
+              onLoadSample={() => setResultMarkdown(SAMPLE_THAI_UNIFIED_DOC)}
+            />
+          </div>
+        </main>
 
         {/* Footer */}
-        <footer className="mt-auto border-t border-[#2c2c36]/70 pt-4 text-center text-xs text-[#71717a]">
+        <footer className="shrink-0 border-t border-[#2c2c36]/70 pt-2 text-center text-[11px] text-[#71717a]">
           {t.privacyFooter}
         </footer>
       </div>

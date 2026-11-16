@@ -176,7 +176,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
   const hasContent = markdown.trim().length > 0;
 
   return (
-    <section className="flex flex-col rounded-2xl border border-[#2c2c36] bg-[#1c1c22]/90 p-5 shadow-lg backdrop-blur-sm">
+    <section className="flex h-full min-h-0 flex-col rounded-2xl border border-[#2c2c36] bg-[#1c1c22]/90 p-5 shadow-lg backdrop-blur-sm">
       {/* Header & Tabs */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#2c2c36] pb-3.5">
         <div>
@@ -229,9 +229,9 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
       </div>
 
       {/* Content Area */}
-      <div className="mt-4 min-h-[280px] flex-1">
+      <div className="mt-4 flex min-h-[260px] flex-1 flex-col">
         {!hasContent ? (
-          <div className="flex h-64 flex-col items-center justify-center rounded-xl border border-dashed border-[#2c2c36] bg-[#141418]/50 px-6 text-center">
+          <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-[#2c2c36] bg-[#141418]/50 px-6 text-center">
             <p className="max-w-md text-xs text-[#71717a]">{t.emptyPreview}</p>
             {onLoadSample && (
               <button
@@ -248,7 +248,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
           </div>
         ) : activeTab === 'rendered' ? (
           <div
-            className="ocr-preview-prose font-thai-preview max-h-[460px] overflow-y-auto rounded-xl border border-[#2c2c36] bg-[#141418]/80 p-5 text-[15px]"
+            className="ocr-preview-prose font-thai-preview min-h-0 flex-1 overflow-y-auto rounded-xl border border-[#2c2c36] bg-[#141418]/80 p-5 text-[15px]"
             dangerouslySetInnerHTML={{ __html: renderedHtml }}
           />
         ) : (
@@ -256,7 +256,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
             value={markdown}
             onChange={(e) => onChangeMarkdown(e.target.value)}
             spellCheck={false}
-            className="font-mono-code h-[420px] w-full resize-y rounded-xl border border-[#2c2c36] bg-[#141418] p-4 text-xs leading-relaxed text-[#f4f4f5] focus:border-[#ff7300] focus:outline-none"
+            className="font-mono-code min-h-0 w-full flex-1 resize-none rounded-xl border border-[#2c2c36] bg-[#141418] p-4 text-xs leading-relaxed text-[#f4f4f5] focus:border-[#ff7300] focus:outline-none"
           />
         )}
       </div>
