@@ -58,93 +58,80 @@ export const DropZone: React.FC<DropZoneProps> = ({
   };
 
   return (
-    <section className="rounded-2xl border border-[#2c2c36] bg-[#1c1c22]/90 p-5 shadow-lg backdrop-blur-sm">
-      <div
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onClick={() => !disabled && inputRef.current?.click()}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if ((e.key === 'Enter' || e.key === ' ') && !disabled) {
-            inputRef.current?.click();
-          }
-        }}
-        className={`group relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-8 text-center transition-all ${
-          isDragging
-            ? 'border-[#ff7300] bg-[#ff7300]/10 shadow-[0_0_24px_rgba(255,115,0,0.2)]'
-            : 'border-[#2c2c36] bg-[#141418]/70 hover:border-[#ff7300]/70 hover:bg-[#22222a]/70'
-        } ${disabled ? 'pointer-events-none opacity-60' : ''}`}
-      >
-        <input
-          ref={inputRef}
-          type="file"
-          accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"
-          className="hidden"
-          onChange={handleInputChange}
-          disabled={disabled}
-        />
+    <section className="rounded-2xl border border-[#2c2c36] bg-[#1c1c22]/90 p-3.5 shadow-lg backdrop-blur-sm">
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={handleInputChange}
+        disabled={disabled}
+      />
 
-        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl border border-[#2c2c36] bg-[#1c1c22] text-[#ff7300] transition-transform group-hover:scale-105">
-          <UploadCloud className="h-6 w-6" />
-        </div>
+      {!selectedFile ? (
+        <div
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onClick={() => !disabled && inputRef.current?.click()}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if ((e.key === 'Enter' || e.key === ' ') && !disabled) {
+              inputRef.current?.click();
+            }
+          }}
+          className={`group relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-4 text-center transition-all ${
+            isDragging
+              ? 'border-[#ff7300] bg-[#ff7300]/10 shadow-[0_0_24px_rgba(255,115,0,0.2)]'
+              : 'border-[#2c2c36] bg-[#141418]/70 hover:border-[#ff7300]/70 hover:bg-[#22222a]/70'
+          } ${disabled ? 'pointer-events-none opacity-60' : ''}`}
+        >
+          <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-xl border border-[#2c2c36] bg-[#1c1c22] text-[#ff7300] transition-transform group-hover:scale-105">
+            <UploadCloud className="h-5 w-5" />
+          </div>
 
-        <p className="text-base font-semibold text-[#f4f4f5]">{t.dropzoneTitle}</p>
-        <p className="mt-1 max-w-md text-xs text-[#a1a1aa]">{t.dropzoneSubtitle}</p>
+          <p className="text-sm font-semibold text-[#f4f4f5]">{t.dropzoneTitle}</p>
+          <p className="mt-0.5 max-w-md text-[11px] text-[#a1a1aa]">{t.dropzoneSubtitle}</p>
 
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-          <span className="rounded-lg border border-[#2c2c36] bg-[#1c1c22] px-3 py-1 text-xs font-medium text-[#a1a1aa]">
-            {t.dropzoneFormats}
-          </span>
-          <span className="rounded-lg bg-[#ff7300] px-3.5 py-1 text-xs font-semibold text-[#141418] transition-colors group-hover:bg-[#ff8826]">
-            {t.browseFiles}
-          </span>
-        </div>
-      </div>
-
-      {/* PDF Scale Control */}
-      <div className="mt-4 flex flex-col gap-2 rounded-xl border border-[#2c2c36] bg-[#141418]/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-2.5">
-          <SlidersHorizontal className="mt-0.5 h-4 w-4 shrink-0 text-[#ff7300]" />
-          <div>
-            <div className="text-xs font-semibold text-[#f4f4f5]">
-              {t.pdfScaleLabel}:{' '}
-              <span className="font-mono-code text-[#ff7300]">{pdfScale.toFixed(2)}x</span>
-            </div>
-            <div className="text-[11px] text-[#71717a]">{t.pdfScaleHint}</div>
+          <div className="mt-2.5 flex flex-wrap items-center justify-center gap-2">
+            <span className="rounded-lg border border-[#2c2c36] bg-[#1c1c22] px-2.5 py-0.5 text-[11px] font-medium text-[#a1a1aa]">
+              {t.dropzoneFormats}
+            </span>
+            <span className="rounded-lg bg-[#ff7300] px-3 py-0.5 text-[11px] font-semibold text-[#141418] transition-colors group-hover:bg-[#ff8826]">
+              {t.browseFiles}
+            </span>
           </div>
         </div>
-        <input
-          type="range"
-          min={2.5}
-          max={3.0}
-          step={0.25}
-          value={pdfScale}
-          disabled={disabled}
-          onChange={(e) => onPdfScaleChange(parseFloat(e.target.value))}
-          className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-[#2c2c36] accent-[#ff7300] sm:w-44"
-        />
-      </div>
-
-      {/* Selected File Summary & Page Thumbnails */}
-      {selectedFile && (
-        <div className="mt-4 rounded-xl border border-[#2c2c36] bg-[#141418]/80 p-3.5">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#ff7300]/15 text-[#ff7300]">
+      ) : (
+        <div
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={`rounded-xl border p-2.5 transition-all ${
+            isDragging
+              ? 'border-[#ff7300] bg-[#ff7300]/10'
+              : 'border-[#2c2c36] bg-[#141418]/80'
+          }`}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <div
+              onClick={() => !disabled && inputRef.current?.click()}
+              className="flex min-w-0 cursor-pointer items-center gap-2.5"
+            >
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#ff7300]/15 text-[#ff7300]">
                 {selectedFile.type === 'application/pdf' ||
                 selectedFile.name.toLowerCase().endsWith('.pdf') ? (
-                  <FileText className="h-5 w-5" />
+                  <FileText className="h-4 w-4" />
                 ) : (
-                  <ImageIcon className="h-5 w-5" />
+                  <ImageIcon className="h-4 w-4" />
                 )}
               </div>
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-[#f4f4f5]">
+                <p className="truncate text-xs font-semibold text-[#f4f4f5]">
                   {selectedFile.name}
                 </p>
-                <p className="text-xs text-[#a1a1aa]">
+                <p className="text-[11px] text-[#a1a1aa]">
                   {formatBytes(selectedFile.size)}
                   {normalizedDoc
                     ? ` • ${t.pagesCount(normalizedDoc.pages.length)}`
@@ -157,32 +144,32 @@ export const DropZone: React.FC<DropZoneProps> = ({
               type="button"
               onClick={onClearFile}
               disabled={disabled}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[#2c2c36] bg-[#1c1c22] px-2.5 py-1.5 text-xs font-medium text-[#a1a1aa] transition-colors hover:border-red-500/60 hover:text-red-400 disabled:opacity-50"
+              className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[#2c2c36] bg-[#1c1c22] px-2 py-1 text-[11px] font-medium text-[#a1a1aa] transition-colors hover:border-red-500/60 hover:text-red-400 disabled:opacity-50"
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <Trash2 className="h-3 w-3" />
               {t.clearFile}
             </button>
           </div>
 
           {normalizedDoc && normalizedDoc.pages.length > 0 && (
-            <div className="mt-3 flex gap-2.5 overflow-x-auto pb-1">
+            <div className="mt-2 flex gap-2 overflow-x-auto pb-0.5">
               {normalizedDoc.pages.map((page) => (
                 <div
                   key={page.pageNumber}
-                  className="w-24 shrink-0 overflow-hidden rounded-lg border border-[#2c2c36] bg-[#1c1c22]"
+                  className="w-14 shrink-0 overflow-hidden rounded-md border border-[#2c2c36] bg-[#1c1c22]"
                 >
                   {page.previewUrl ? (
                     <img
                       src={page.previewUrl}
                       alt={t.pageLabel(page.pageNumber)}
-                      className="h-28 w-full object-cover object-top"
+                      className="h-16 w-full object-cover object-top"
                     />
                   ) : (
-                    <div className="flex h-28 items-center justify-center text-xs text-[#71717a]">
+                    <div className="flex h-16 items-center justify-center text-[10px] text-[#71717a]">
                       {page.width}×{page.height}
                     </div>
                   )}
-                  <div className="border-t border-[#2c2c36] px-1.5 py-1 text-center text-[10px] font-medium text-[#a1a1aa]">
+                  <div className="border-t border-[#2c2c36] px-1 py-0.5 text-center text-[9px] font-medium text-[#a1a1aa]">
                     {t.pageLabel(page.pageNumber)}
                   </div>
                 </div>
@@ -191,6 +178,27 @@ export const DropZone: React.FC<DropZoneProps> = ({
           )}
         </div>
       )}
+
+      {/* PDF Scale Control */}
+      <div className="mt-2.5 flex items-center justify-between gap-3 rounded-xl border border-[#2c2c36] bg-[#141418]/70 px-3 py-1.5">
+        <div className="flex items-center gap-2">
+          <SlidersHorizontal className="h-3.5 w-3.5 shrink-0 text-[#ff7300]" />
+          <span className="text-[11px] font-semibold text-[#f4f4f5]">
+            {t.pdfScaleLabel}:{' '}
+            <span className="font-mono-code text-[#ff7300]">{pdfScale.toFixed(2)}x</span>
+          </span>
+        </div>
+        <input
+          type="range"
+          min={2.5}
+          max={3.0}
+          step={0.25}
+          value={pdfScale}
+          disabled={disabled}
+          onChange={(e) => onPdfScaleChange(parseFloat(e.target.value))}
+          className="h-1.5 w-32 cursor-pointer appearance-none rounded-lg bg-[#2c2c36] accent-[#ff7300] sm:w-36"
+        />
+      </div>
     </section>
   );
 };

@@ -58,10 +58,10 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
   const localInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   return (
-    <section className="rounded-2xl border border-[#2c2c36] bg-[#1c1c22]/90 p-5 shadow-lg backdrop-blur-sm">
-      <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="flex items-center gap-2 text-sm font-bold text-[#f4f4f5]">
-          <Cpu className="h-4 w-4 text-[#ff7300]" />
+    <section className="rounded-2xl border border-[#2c2c36] bg-[#1c1c22]/90 p-3.5 shadow-lg backdrop-blur-sm">
+      <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="flex items-center gap-2 text-xs font-bold text-[#f4f4f5]">
+          <Cpu className="h-3.5 w-3.5 text-[#ff7300]" />
           {t.modelSectionTitle}
         </h2>
 
@@ -101,49 +101,49 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                   onSelectMode(model.mode);
                 }
               }}
-              className={`flex flex-col justify-between rounded-xl border p-4 text-left transition-all ${
+              className={`flex flex-col justify-between rounded-xl border p-3 text-left transition-all ${
                 isSelected
                   ? 'border-[#ff7300] bg-[#ff7300]/10 shadow-[0_0_20px_rgba(255,115,0,0.12)]'
                   : 'border-[#2c2c36] bg-[#141418]/75 hover:border-[#ff7300]/50 hover:bg-[#22222a]/70'
               } ${disabled ? 'pointer-events-none opacity-65' : 'cursor-pointer'}`}
             >
               <div>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-start justify-between gap-1.5">
+                  <div className="flex min-w-0 items-center gap-2">
                     <div
-                      className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
                         isSelected
                           ? 'bg-[#ff7300] text-[#141418]'
                           : 'bg-[#1c1c22] text-[#ff7300]'
                       }`}
                     >
                       {model.mode === 'fast' ? (
-                        <Zap className="h-4 w-4" />
+                        <Zap className="h-3.5 w-3.5" />
                       ) : (
-                        <Sparkles className="h-4 w-4" />
+                        <Sparkles className="h-3.5 w-3.5" />
                       )}
                     </div>
-                    <div>
-                      <h3 className="text-sm font-bold text-[#f4f4f5]">
+                    <div className="min-w-0">
+                      <h3 className="truncate text-xs font-bold text-[#f4f4f5]">
                         {lang === 'th' ? model.nameTh : model.name}
                       </h3>
-                      <p className="text-[11px] font-medium text-[#ff9440]">
+                      <p className="truncate text-[10px] font-medium text-[#ff9440]">
                         {lang === 'th' ? model.badgeTh : model.badge}
                       </p>
                     </div>
                   </div>
 
-                  <span className="font-mono-code rounded-md border border-[#2c2c36] bg-[#1c1c22] px-2 py-0.5 text-[11px] text-[#a1a1aa]">
+                  <span className="font-mono-code shrink-0 rounded-md border border-[#2c2c36] bg-[#1c1c22] px-1.5 py-0.5 text-[10px] text-[#a1a1aa]">
                     ~{model.estimatedSizeMB} MB
                   </span>
                 </div>
 
-                <p className="mt-2.5 text-xs leading-relaxed text-[#a1a1aa]">
+                <p className="mt-1.5 line-clamp-2 text-[11px] leading-snug text-[#a1a1aa]">
                   {lang === 'th' ? model.descriptionTh : model.description}
                 </p>
 
                 {isWebGpuBlocked && (
-                  <p className="mt-2 text-[11px] font-medium text-amber-400">
+                  <p className="mt-1 text-[10px] font-medium text-amber-400">
                     ⚠ {t.webgpuUnsupported}
                   </p>
                 )}
@@ -151,7 +151,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
 
               {/* Per-Model Cache Status & Actions */}
               <div
-                className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-[#2c2c36]/80 pt-3"
+                className="mt-2.5 flex flex-wrap items-center justify-between gap-1.5 border-t border-[#2c2c36]/80 pt-2"
                 onClick={(e) => e.stopPropagation()}
               >
                 {isCached ? (
@@ -225,10 +225,10 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
       </div>
 
       {/* Persistent Cache Summary Bar */}
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#2c2c36] bg-[#141418]/75 px-4 py-2.5">
-        <div className="flex flex-wrap items-center gap-3 text-xs text-[#a1a1aa]">
-          <span className="inline-flex items-center gap-1.5 font-medium text-[#f4f4f5]">
-            <HardDrive className="h-3.5 w-3.5 text-[#ff7300]" />
+      <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#2c2c36] bg-[#141418]/75 px-3 py-1.5">
+        <div className="flex flex-wrap items-center gap-2 text-[11px] text-[#a1a1aa]">
+          <span className="inline-flex items-center gap-1 font-medium text-[#f4f4f5]">
+            <HardDrive className="h-3 w-3 text-[#ff7300]" />
             {t.cacheSectionTitle}:
           </span>
           <span>
@@ -237,7 +237,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
               {formatBytes(totalCacheBytes)}
             </strong>
           </span>
-          <span className="rounded-md border border-[#2c2c36] bg-[#1c1c22] px-2 py-0.5 text-[11px]">
+          <span className="rounded-md border border-[#2c2c36] bg-[#1c1c22] px-1.5 py-0.5 text-[10px]">
             {persistentGranted ? t.cachePersistentOn : t.cachePersistentOff}
           </span>
         </div>
@@ -246,9 +246,9 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
           type="button"
           disabled={disabled || totalCacheBytes === 0}
           onClick={onClearAllCache}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-[#2c2c36] bg-[#1c1c22] px-3 py-1.5 text-xs font-medium text-[#a1a1aa] transition-colors hover:border-red-500/60 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex items-center gap-1 rounded-lg border border-[#2c2c36] bg-[#1c1c22] px-2.5 py-1 text-[11px] font-medium text-[#a1a1aa] transition-colors hover:border-red-500/60 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          <Trash2 className="h-3.5 w-3.5" />
+          <Trash2 className="h-3 w-3" />
           {t.deleteAllCache}
         </button>
       </div>
