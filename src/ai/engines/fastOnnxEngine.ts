@@ -30,7 +30,7 @@ export class FastOnnxEngine implements IOcrEngine {
     }
 
     // Configure WASM runtime inside Web Worker (load .wasm from CDN to stay under 25 MiB host limit)
-    ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/';
+    ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.31.1/dist/';
     ort.env.wasm.numThreads = Math.min(4, navigator.hardwareConcurrency || 2);
     ort.env.wasm.simd = true;
 

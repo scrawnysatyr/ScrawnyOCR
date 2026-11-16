@@ -35,7 +35,7 @@ export class WebGpuVlmEngine implements IOcrEngine {
       );
     }
 
-    ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/';
+    ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.31.1/dist/';
 
     const encoderArtifact = model.artifacts[0];
     const decoderArtifact = model.artifacts[1];
