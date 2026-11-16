@@ -80,6 +80,48 @@ export interface WebGpuCapability {
   reason?: string;
 }
 
+export interface ResourceGuardResult {
+  ok: boolean;
+  reason?: string;
+}
+
+/**
+ * Checks approximate device RAM (navigator.deviceMemory) and storage quota
+ * before loading large models to prevent browser tab freezes/OOM.
+ */
+export async function checkModelResourceGuard(
+  model: ModelDefinition,
+): Promise<ResourceGuardResult> {
+  if (model.estimatedSizeMB >= 500) {
+    const devMem = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
+    const minRamGb = Math.max(4, Math.ceil((model.estimatedSizeMB * 2.5) / 1024));
+    if (typeof devMem === 'number' && devMem < minRamGb) {
+      return {
+        ok: false,
+        reason: `Insufficient device RAM (~${devMem} GB detected; need ≥${minRamGb} GB for ${model.name}). Use Fast Mode instead.`,
+      };
+    }
+  }
+
+  try {
+    if (navigator.storage && typeof navigator.storage.estimate === 'function') {
+      const { quota = 0, usage = 0 } = await navigator.storage.estimate();
+      const freeBytes = quota - usage;
+      const neededBytes = model.estimatedSizeMB * 1024 * 1024 * 1.2;
+      if (quota > 0 && freeBytes < neededBytes) {
+        return {
+          ok: false,
+          reason: `Insufficient browser storage (${Math.round(freeBytes / 1024 / 1024)} MB free; need ~${Math.round(neededBytes / 1024 / 1024)} MB).`,
+        };
+      }
+    }
+  } catch {
+    // Ignore storage estimate errors in restricted contexts
+  }
+
+  return { ok: true };
+}
+
 export async function checkWebGpuSupport(): Promise<WebGpuCapability> {
   if (typeof navigator === 'undefined' || !('gpu' in navigator)) {
     return {

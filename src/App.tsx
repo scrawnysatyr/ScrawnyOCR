@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Globe, Play, ScanText, ShieldCheck } from 'lucide-react';
-import { checkWebGpuSupport, MODEL_REGISTRY } from './ai/modelRegistry';
+import {
+  checkModelResourceGuard,
+  checkWebGpuSupport,
+  MODEL_REGISTRY,
+} from './ai/modelRegistry';
 import { OcrWorkerClient } from './ai/ocrClient';
 import { DropZone } from './components/DropZone';
 import { ModelSelector } from './components/ModelSelector';
@@ -82,7 +86,7 @@ export function App() {
   const [normalizedDoc, setNormalizedDoc] = useState<NormalizedDocument | null>(null);
   const [pdfScale, setPdfScale] = useState<number>(2.75);
 
-  const [selectedMode, setSelectedMode] = useState<ModelMode>('accurate');
+  const [selectedMode, setSelectedMode] = useState<ModelMode>('fast');
   const [webGpuSupported, setWebGpuSupported] = useState<boolean>(false);
 
   const [persistentGranted, setPersistentGranted] = useState<boolean>(false);
@@ -180,7 +184,21 @@ export function App() {
     setProgress({ stage: 'idle', percent: 0, message: '' });
   };
 
+  const ensureResourcesOk = async (model: ModelDefinition): Promise<boolean> => {
+    const guard = await checkModelResourceGuard(model);
+    if (!guard.ok) {
+      setProgress({
+        stage: 'error',
+        percent: 0,
+        message: guard.reason ?? 'Insufficient device RAM or storage.',
+      });
+      return false;
+    }
+    return true;
+  };
+
   const handleDownloadModel = async (model: ModelDefinition) => {
+    if (!(await ensureResourcesOk(model))) return;
     setDownloadingModelId(model.id);
     setDownloadPercent(0);
     try {
@@ -208,6 +226,7 @@ export function App() {
     model: ModelDefinition,
     files: FileList,
   ) => {
+    if (!(await ensureResourcesOk(model))) return;
     try {
       await importLocalModelFiles(model, files);
       await refreshCacheInfo();
@@ -239,6 +258,7 @@ export function App() {
     if (!normalizedDoc) return;
 
     const model = MODEL_REGISTRY[selectedMode];
+    if (!(await ensureResourcesOk(model))) return;
     setIsProcessing(true);
     setProgress({
       stage: 'initializing',

@@ -192,17 +192,19 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                         {lang === 'th' ? 'นำเข้าจากเครื่อง' : 'Import Local'}
                       </button>
 
-                      <button
-                        type="button"
-                        disabled={disabled || isDownloading}
-                        onClick={() => onDownloadModel(model)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-[#ff7300]/50 bg-[#ff7300]/15 px-2.5 py-1 text-[11px] font-semibold text-[#ff9440] transition-colors hover:bg-[#ff7300] hover:text-[#141418] disabled:opacity-50"
-                      >
-                        <Download className="h-3 w-3" />
-                        {isDownloading
-                          ? `${t.downloading} ${downloadPercent}%`
-                          : t.downloadAndCache}
-                      </button>
+                      {model.onnxReady !== false && (
+                        <button
+                          type="button"
+                          disabled={disabled || isDownloading}
+                          onClick={() => onDownloadModel(model)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-[#ff7300]/50 bg-[#ff7300]/15 px-2.5 py-1 text-[11px] font-semibold text-[#ff9440] transition-colors hover:bg-[#ff7300] hover:text-[#141418] disabled:opacity-50"
+                        >
+                          <Download className="h-3 w-3" />
+                          {isDownloading
+                            ? `${t.downloading} ${downloadPercent}%`
+                            : t.downloadAndCache}
+                        </button>
+                      )}
                     </>
                   )}
 
