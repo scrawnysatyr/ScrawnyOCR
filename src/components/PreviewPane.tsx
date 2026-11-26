@@ -180,7 +180,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
   const hasContent = pageMarkdown.trim().length > 0;
 
   return (
-    <section className="flex h-full min-h-0 flex-col rounded-2xl border border-[#222226] bg-[#0c0c0d]/90 p-5 shadow-lg backdrop-blur-sm">
+    <section className="flex h-full min-h-0 flex-col rounded-2xl border border-[#222226] bg-[#18181b]/90 p-5 shadow-lg backdrop-blur-sm">
       {/* Header & Mode Switcher */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#222226] pb-3.5">
         <div>

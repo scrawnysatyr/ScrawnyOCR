@@ -352,7 +352,7 @@ export function App() {
         {/* Topbar */}
         <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[#222226]/70 pb-3">
           <div className="flex items-center gap-3">
-            <div className="grid h-9 w-9 place-items-center rounded-xl border border-[#222226] bg-[#0c0c0d] text-[#ff7300] shadow-md">
+            <div className="grid h-9 w-9 place-items-center rounded-xl border border-[#222226] bg-[#18181b] text-[#ff7300] shadow-md">
               <ScanText className="h-5 w-5" />
             </div>
             <div>
@@ -373,7 +373,7 @@ export function App() {
           <button
             type="button"
             onClick={() => setLang((prev) => (prev === 'th' ? 'en' : 'th'))}
-            className="inline-flex items-center gap-2 rounded-xl border border-[#222226] bg-[#0c0c0d] px-3 py-1.5 text-xs font-semibold text-[#ffffff] transition-colors hover:border-[#ff7300]"
+            className="inline-flex items-center gap-2 rounded-xl border border-[#222226] bg-[#18181b] px-3 py-1.5 text-xs font-semibold text-[#ffffff] transition-colors hover:border-[#ff7300]"
           >
             <Globe className="h-3.5 w-3.5 text-[#ff7300]" />
             <span className={lang === 'th' ? 'text-[#ff7300]' : 'text-[#8a8a93]'}>

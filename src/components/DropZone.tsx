@@ -64,7 +64,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
   };
 
   return (
-    <section className="rounded-2xl border border-[#222226] bg-[#0c0c0d]/90 p-3.5 shadow-lg backdrop-blur-sm">
+    <section className="rounded-2xl border border-[#222226] bg-[#18181b]/90 p-3.5 shadow-lg backdrop-blur-sm">
       <input
         ref={inputRef}
         type="file"
@@ -93,7 +93,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
               : 'border-[#222226] bg-[#050505]/70 hover:border-[#ff7300]/70 hover:bg-[#141416]/70'
           } ${disabled ? 'pointer-events-none opacity-60' : ''}`}
         >
-          <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-xl border border-[#222226] bg-[#0c0c0d] text-[#ff7300] transition-transform group-hover:scale-105">
+          <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-xl border border-[#222226] bg-[#18181b] text-[#ff7300] transition-transform group-hover:scale-105">
             <UploadCloud className="h-5 w-5" />
           </div>
 
@@ -101,7 +101,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
           <p className="mt-0.5 max-w-md text-[11px] text-[#d4d4d8]">{t.dropzoneSubtitle}</p>
 
           <div className="mt-2.5 flex flex-wrap items-center justify-center gap-2">
-            <span className="rounded-lg border border-[#222226] bg-[#0c0c0d] px-2.5 py-0.5 text-[11px] font-medium text-[#d4d4d8]">
+            <span className="rounded-lg border border-[#222226] bg-[#18181b] px-2.5 py-0.5 text-[11px] font-medium text-[#d4d4d8]">
               {t.dropzoneFormats}
             </span>
             <span className="rounded-lg bg-[#ff7300] px-3 py-0.5 text-[11px] font-semibold text-[#050505] transition-colors group-hover:bg-[#ff8826]">
@@ -150,7 +150,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
               type="button"
               onClick={onClearFile}
               disabled={disabled}
-              className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[#222226] bg-[#0c0c0d] px-2 py-1 text-[11px] font-medium text-[#d4d4d8] transition-colors hover:border-red-500/60 hover:text-red-400 disabled:opacity-50"
+              className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[#222226] bg-[#18181b] px-2 py-1 text-[11px] font-medium text-[#d4d4d8] transition-colors hover:border-red-500/60 hover:text-red-400 disabled:opacity-50"
             >
               <Trash2 className="h-3 w-3" />
               {t.clearFile}
@@ -170,7 +170,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
                     className={`group flex flex-col overflow-hidden rounded-xl border text-left transition-all cursor-pointer ${
                       isSelected
                         ? 'border-[#ff7300] bg-[#ff7300]/10 ring-1 ring-[#ff7300]/60'
-                        : 'border-[#222226] bg-[#0c0c0d] hover:border-[#ff7300]/50'
+                        : 'border-[#222226] bg-[#18181b] hover:border-[#ff7300]/50'
                     }`}
                   >
                     <div className="relative h-24 w-full overflow-hidden bg-[#050505]">

@@ -58,7 +58,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
   const localInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   return (
-    <section className="rounded-2xl border border-[#222226] bg-[#0c0c0d]/90 p-3.5 shadow-lg backdrop-blur-sm">
+    <section className="rounded-2xl border border-[#222226] bg-[#18181b]/90 p-3.5 shadow-lg backdrop-blur-sm">
       <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
         <h2 className="flex items-center gap-2 text-xs font-bold text-[#ffffff]">
           <Cpu className="h-3.5 w-3.5 text-[#ff7300]" />
@@ -114,7 +114,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                       className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
                         isSelected
                           ? 'bg-[#ff7300] text-[#050505]'
-                          : 'bg-[#0c0c0d] text-[#ff7300]'
+                          : 'bg-[#18181b] text-[#ff7300]'
                       }`}
                     >
                       {model.mode === 'fast' ? (
@@ -133,7 +133,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                     </div>
                   </div>
 
-                  <span className="font-mono-code shrink-0 rounded-md border border-[#222226] bg-[#0c0c0d] px-1.5 py-0.5 text-[10px] text-[#d4d4d8]">
+                  <span className="font-mono-code shrink-0 rounded-md border border-[#222226] bg-[#18181b] px-1.5 py-0.5 text-[10px] text-[#d4d4d8]">
                     ~{model.estimatedSizeMB} MB
                   </span>
                 </div>
@@ -186,7 +186,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                         type="button"
                         disabled={disabled || isDownloading}
                         onClick={() => localInputRefs.current[model.id]?.click()}
-                        className="inline-flex items-center gap-1 rounded-lg border border-[#222226] bg-[#0c0c0d] px-2.5 py-1 text-[11px] font-medium text-[#d4d4d8] transition-colors hover:border-[#ff7300]/60 hover:text-[#ffffff] disabled:opacity-50"
+                        className="inline-flex items-center gap-1 rounded-lg border border-[#222226] bg-[#18181b] px-2.5 py-1 text-[11px] font-medium text-[#d4d4d8] transition-colors hover:border-[#ff7300]/60 hover:text-[#ffffff] disabled:opacity-50"
                       >
                         <FolderOpen className="h-3 w-3" />
                         {lang === 'th' ? 'นำเข้าจากเครื่อง' : 'Import Local'}
@@ -213,7 +213,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                       type="button"
                       disabled={disabled}
                       onClick={() => onDeleteModelCache(model)}
-                      className="inline-flex items-center gap-1 rounded-lg border border-[#222226] bg-[#0c0c0d] px-2.5 py-1 text-[11px] font-medium text-[#d4d4d8] transition-colors hover:border-red-500/60 hover:text-red-400 disabled:opacity-50"
+                      className="inline-flex items-center gap-1 rounded-lg border border-[#222226] bg-[#18181b] px-2.5 py-1 text-[11px] font-medium text-[#d4d4d8] transition-colors hover:border-red-500/60 hover:text-red-400 disabled:opacity-50"
                     >
                       <Trash2 className="h-3 w-3" />
                       {t.deleteModelCache}
@@ -239,7 +239,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
               {formatBytes(totalCacheBytes)}
             </strong>
           </span>
-          <span className="rounded-md border border-[#222226] bg-[#0c0c0d] px-1.5 py-0.5 text-[10px]">
+          <span className="rounded-md border border-[#222226] bg-[#18181b] px-1.5 py-0.5 text-[10px]">
             {persistentGranted ? t.cachePersistentOn : t.cachePersistentOff}
           </span>
         </div>
@@ -248,7 +248,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
           type="button"
           disabled={disabled || totalCacheBytes === 0}
           onClick={onClearAllCache}
-          className="inline-flex items-center gap-1 rounded-lg border border-[#222226] bg-[#0c0c0d] px-2.5 py-1 text-[11px] font-medium text-[#d4d4d8] transition-colors hover:border-red-500/60 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex items-center gap-1 rounded-lg border border-[#222226] bg-[#18181b] px-2.5 py-1 text-[11px] font-medium text-[#d4d4d8] transition-colors hover:border-red-500/60 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <Trash2 className="h-3 w-3" />
           {t.deleteAllCache}
