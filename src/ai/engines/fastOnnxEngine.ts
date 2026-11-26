@@ -656,8 +656,85 @@ export class FastOnnxEngine implements IOcrEngine {
   }
 
   /**
+   * Joins boxes in the same row, restoring dotted fill-in lines (.........) when
+   * dark dot pixels exist in the gap between boxes.
+   */
+  private joinRowWithDots(
+    row: RecognizedBox[],
+    rgba: Uint8ClampedArray,
+    width: number,
+    height: number,
+  ): string {
+    if (row.length === 0) return '';
+    let result = row[0].text;
+    for (let k = 1; k < row.length; k++) {
+      const prev = row[k - 1];
+      const curr = row[k];
+      const gap = curr.box.x0 - prev.box.x1;
+      if (gap > 16) {
+        const y0 = Math.max(0, Math.floor(Math.min(prev.box.y0, curr.box.y0) + (prev.box.y1 - prev.box.y0) * 0.45));
+        const y1 = Math.min(height - 1, Math.ceil(Math.max(prev.box.y1, curr.box.y1)));
+        const x0 = Math.max(0, Math.floor(prev.box.x1 + 2));
+        const x1 = Math.min(width - 1, Math.ceil(curr.box.x0 - 2));
+        let darkCols = 0;
+        const totalCols = Math.max(1, x1 - x0);
+        for (let x = x0; x < x1; x += 2) {
+          let hasDark = false;
+          for (let y = y0; y <= y1; y++) {
+            const idx = (y * width + x) * 4;
+            const gray = 0.299 * rgba[idx] + 0.587 * rgba[idx + 1] + 0.114 * rgba[idx + 2];
+            if (gray < 175) {
+              hasDark = true;
+              break;
+            }
+          }
+          if (hasDark) darkCols++;
+        }
+        const dotDensity = darkCols / Math.max(1, totalCols / 2);
+        if (dotDensity > 0.12 || /\.\s*$/.test(prev.text) || /^\s*\./.test(curr.text)) {
+          const dotCount = Math.min(72, Math.max(6, Math.round(gap / 7)));
+          result += ` ${'.'.repeat(dotCount)} ${curr.text}`;
+          continue;
+        }
+      }
+      result += ` ${curr.text}`;
+    }
+    return result;
+  }
+
+  /**
+   * Checks whether a multi-row region actually has drawn table grid borders.
+   */
+  private hasBorderedTableLines(
+    rgba: Uint8ClampedArray,
+    width: number,
+    height: number,
+    yStart: number,
+    yEnd: number,
+  ): boolean {
+    const top = Math.max(0, Math.floor(yStart - 6));
+    const bottom = Math.min(height - 1, Math.ceil(yEnd + 6));
+    const x0 = Math.floor(width * 0.1);
+    const x1 = Math.ceil(width * 0.9);
+    const span = x1 - x0;
+    if (bottom - top < 10 || span <= 0) return false;
+
+    let hLines = 0;
+    for (let y = top; y <= bottom; y += 2) {
+      let dark = 0;
+      for (let x = x0; x < x1; x += 3) {
+        const idx = (y * width + x) * 4;
+        const gray = 0.299 * rgba[idx] + 0.587 * rgba[idx + 1] + 0.114 * rgba[idx + 2];
+        if (gray < 175) dark++;
+      }
+      if (dark / (span / 3) >= 0.55) hLines++;
+    }
+    return hLines >= 2;
+  }
+
+  /**
    * Reconstructs Garuda/top emblem, headers, centered titles/page numbers,
-   * horizontal dividers, committee lists, signature blocks, and data tables.
+   * horizontal dividers, committee lists, signature blocks, and real bordered tables.
    */
   private async buildHybridStructuredMarkdown(
     rows: RecognizedBox[][],
@@ -674,10 +751,38 @@ export class FastOnnxEngine implements IOcrEngine {
       }
     }
 
+    // Compute typical body left margin & line height for paragraph reflow/indentation
+    const leftPositions = rows
+      .filter((r) => r[0].box.x0 < width * 0.35)
+      .map((r) => r[0].box.x0)
+      .sort((a, b) => a - b);
+    const bodyLeftMargin =
+      leftPositions.length > 0
+        ? leftPositions[Math.floor(leftPositions.length * 0.2)]
+        : width * 0.12;
+    const heights = rows
+      .map((r) => Math.max(...r.map((b) => b.box.y1 - b.box.y0)))
+      .sort((a, b) => a - b);
+    const avgLineH =
+      heights.length > 0 ? heights[Math.floor(heights.length * 0.5)] : 22;
+
+    let proseBuffer: string[] = [];
+    let proseIndented = false;
+    let lastProseBottom = 0;
+
+    const flushProse = () => {
+      if (proseBuffer.length === 0) return;
+      const joined = proseBuffer.join(' ').replace(/\s{2,}/g, ' ').trim();
+      out.push(proseIndented ? `<p indent="first">${joined}</p>` : joined);
+      proseBuffer = [];
+      proseIndented = false;
+    };
+
     let i = 0;
     while (i < rows.length) {
       const row = rows[i];
       const rowTop = Math.min(...row.map((r) => r.box.y0));
+      const rowBottom = Math.max(...row.map((r) => r.box.y1));
 
       if (i > 0) {
         const prevBottom = Math.max(...rows[i - 1].map((r) => r.box.y1));
@@ -685,6 +790,7 @@ export class FastOnnxEngine implements IOcrEngine {
           rowTop - prevBottom >= 4 &&
           this.detectHorizontalRuleBetween(rgba, width, height, prevBottom + 1, rowTop - 1)
         ) {
+          flushProse();
           out.push('---');
         }
       }
@@ -694,6 +800,7 @@ export class FastOnnxEngine implements IOcrEngine {
         const leftMost = row[0].box.x0;
         const rightMost = row[row.length - 1].box.x1;
         if (leftMost < width * 0.35 && rightMost > width * 0.65) {
+          flushProse();
           const left = this.escapeHtmlCell(row[0].text);
           const mid = row.length === 3 ? this.escapeHtmlCell(row[1].text) : '';
           const right = this.escapeHtmlCell(row[row.length - 1].text);
@@ -705,7 +812,7 @@ export class FastOnnxEngine implements IOcrEngine {
         }
       }
 
-      // Multi-column rows: committee list, 2-col signature block, or data table
+      // Multi-column rows: committee list, 2-col signature block, or real bordered data table
       if (row.length >= 2) {
         let j = i;
         while (j + 1 < rows.length && rows[j + 1].length >= 2) {
@@ -715,18 +822,23 @@ export class FastOnnxEngine implements IOcrEngine {
         const blockRows = rows.slice(i, j + 1);
         const maxCols = Math.max(...blockRows.map((r) => r.length));
         const isCommitteeBlock =
-          maxCols === 2 &&
+          maxCols <= 3 &&
           blockRows.some((r) =>
-            /^[๑-๙0-9]+\./.test(r[0].text.trim()) ||
+            /^[๑-๙0-9]+\./.test(r[0].text.trim()) &&
             /(ประธาน|รองประธาน|กรรมการ|เลขานุการ)/.test(r[r.length - 1].text),
           );
 
         if (isCommitteeBlock) {
+          flushProse();
           const trHtml = blockRows
-            .map(
-              (br) =>
-                `<tr><td>${this.escapeHtmlCell(br[0]?.text ?? '')}</td><td>${this.escapeHtmlCell(br.slice(1).map((x) => x.text).join(' '))}</td></tr>`,
-            )
+            .map((br) => {
+              const roleText = br[br.length - 1].text;
+              const leftPart =
+                br.length > 1
+                  ? this.joinRowWithDots(br.slice(0, br.length - 1), rgba, width, height)
+                  : '';
+              return `<tr><td>${this.escapeHtmlCell(leftPart)}</td><td>${this.escapeHtmlCell(roleText)}</td></tr>`;
+            })
             .join('');
           out.push(`<table data-layout="committee"><tbody>${trHtml}</tbody></table>`);
           i = j + 1;
@@ -737,7 +849,7 @@ export class FastOnnxEngine implements IOcrEngine {
           r.some((c) => /date|signature|ลงชื่อ|ตำแหน่ง|director|minister|president|governor/i.test(c.text)),
         );
 
-        if (maxCols === 2 && (hasSigKeywords || rowTop > height * 0.45)) {
+        if (maxCols === 2 && (hasSigKeywords || rowTop > height * 0.65)) {
           const leftLines: string[] = [];
           const rightLines: string[] = [];
           for (const br of blockRows) {
@@ -748,6 +860,7 @@ export class FastOnnxEngine implements IOcrEngine {
             }
           }
           if (leftLines.length > 0 && rightLines.length > 0) {
+            flushProse();
             out.push(
               `<table data-layout="signature"><tbody><tr><td>${leftLines.join('<br />')}</td><td>${rightLines.join('<br />')}</td></tr></tbody></table>`,
             );
@@ -756,8 +869,14 @@ export class FastOnnxEngine implements IOcrEngine {
           }
         }
 
-        if (blockRows.length >= 2 && maxCols >= 2) {
-          // Align cells into detected X column bands
+        const blockTop = Math.min(...blockRows[0].map((c) => c.box.y0));
+        const blockBottom = Math.max(...blockRows[blockRows.length - 1].map((c) => c.box.y1));
+        if (
+          blockRows.length >= 2 &&
+          maxCols >= 2 &&
+          this.hasBorderedTableLines(rgba, width, height, blockTop, blockBottom)
+        ) {
+          flushProse();
           const allX0 = blockRows.flatMap((r) => r.map((c) => c.box.x0)).sort((a, b) => a - b);
           const colStarts: number[] = [];
           for (const x of allX0) {
@@ -800,20 +919,20 @@ export class FastOnnxEngine implements IOcrEngine {
         const boxCenter = (box.x0 + box.x1) / 2;
         const boxWidth = box.x1 - box.x0;
 
-        // Right-aligned catchword at bottom of page (e.g. "คณะกรรมการ...")
         if (rowTop > height * 0.8 && box.x0 > width * 0.62) {
+          flushProse();
           out.push(`<p align="right">${txt}</p>`);
           i++;
           continue;
         }
 
-        // Indented Thai official signature / order date block in lower half
         if (
           rowTop > height * 0.45 &&
           box.x0 > width * 0.3 &&
           (/^(สั่ง\s+ณ\s+วันที่|\(.*\)|คณบดี|อธิการบดี|รัฐมนตรี|ปลัด|ผู้อำนวยการ)/.test(txt) ||
             boxCenter > width * 0.56)
         ) {
+          flushProse();
           out.push(`<p align="signature">${txt}</p>`);
           i++;
           continue;
@@ -822,6 +941,7 @@ export class FastOnnxEngine implements IOcrEngine {
         const isCentered =
           Math.abs(boxCenter - width / 2) < width * 0.14 && boxWidth < width * 0.78;
         if (isCentered) {
+          flushProse();
           const isPageNum = /^(หน้า\s*[\d๐-๙]+|-\s*[\d๐-๙]+\s*-|page\s*\d+)$/i.test(txt);
           out.push(
             isPageNum ? `<p align="center">${txt}</p>` : `<p align="center">**${txt}**</p>`,
@@ -831,12 +951,40 @@ export class FastOnnxEngine implements IOcrEngine {
         }
       }
 
-      // Standard prose line (bold+underline "หน้าที่" prefix if present)
-      let lineText = row.map((r) => r.text).join('  ');
-      lineText = lineText.replace(/^หน้าที่\s+/, '**<u>หน้าที่</u>** ');
-      out.push(lineText);
+      // Standard prose line (join boxes with dotted-line preservation + paragraph reflow)
+      let lineText = this.joinRowWithDots(row, rgba, width, height);
+      const isDutyLine = /^หน้าที่\s+/.test(lineText);
+      if (isDutyLine) {
+        flushProse();
+        lineText = lineText.replace(/^หน้าที่\s+/, '**<u>หน้าที่</u>** ');
+        out.push(lineText);
+        i++;
+        continue;
+      }
+
+      const isSectionHeading = /^(คณะกรรมการ|ข้อ\s*[๑-๙0-9]+)/.test(lineText);
+      if (isSectionHeading) {
+        flushProse();
+        out.push(`**${lineText}**`);
+        i++;
+        continue;
+      }
+
+      const isIndented = row[0].box.x0 - bodyLeftMargin > width * 0.045;
+      const hasVerticalBreak =
+        proseBuffer.length > 0 && rowTop - lastProseBottom > avgLineH * 0.85;
+
+      if (isIndented || hasVerticalBreak) {
+        flushProse();
+        proseIndented = isIndented;
+      }
+
+      proseBuffer.push(lineText);
+      lastProseBottom = rowBottom;
       i++;
     }
+
+    flushProse();
 
     // Check bottom rule after last row
     if (rows.length > 0) {

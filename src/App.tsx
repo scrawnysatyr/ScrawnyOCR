@@ -223,6 +223,18 @@ export function App() {
     if (!normalizedDoc) return;
 
     const model = MODEL_REGISTRY[selectedMode];
+    if (model.onnxReady === false && !cacheStatuses[model.id]?.isCached) {
+      setProgress({
+        stage: 'error',
+        percent: 0,
+        message:
+          lang === 'th'
+            ? 'Typhoon OCR2 2B ยังไม่มีไฟล์ ONNX ให้โหลดอัตโนมัติ (กรุณานำเข้าไฟล์ .onnx จากเครื่อง หรือเลือก "โหมดจัดหน้า + ตาราง + Text OCR (WebGPU)")'
+            : 'Typhoon OCR2 2B has no pre-converted ONNX download. Import local .onnx weights or use "Layout + Table + Text OCR (WebGPU)".',
+      });
+      return;
+    }
+
     if (!(await ensureResourcesOk(model))) return;
     setIsProcessing(true);
     setProgress({

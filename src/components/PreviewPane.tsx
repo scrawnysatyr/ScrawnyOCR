@@ -89,6 +89,15 @@ function renderUnifiedPreviewHtml(source: string): string {
         continue;
       }
 
+      const indentMatch = trimmed.match(/^<p\s+indent="first">([\s\S]*)<\/p>$/i);
+      if (indentMatch) {
+        closeLists();
+        htmlLines.push(
+          `<p class="indent-8 text-justify">${formatInlineMarkdown(indentMatch[1])}</p>`,
+        );
+        continue;
+      }
+
       const centerMatch = trimmed.match(/^<p\s+align="center">([\s\S]*)<\/p>$/i);
       if (centerMatch) {
         closeLists();

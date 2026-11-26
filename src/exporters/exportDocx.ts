@@ -37,9 +37,9 @@ const BODY_FONT_SIZE_HALF_PT = 32; // 16pt (standard Thai Sarabun body size)
 const TABLE_FONT_SIZE_HALF_PT = 28; // 14pt inside tables for clean fit
 
 const THAI_LINE_SPACING = {
-  line: 312, // 1.3x line height (240 = 1.0x) to prevent clipped Thai tone marks
+  line: 264, // 1.1x line height for crisp Thai official documents
   lineRule: LineRuleType.AUTO,
-  after: 120,
+  after: 40,
 } as const;
 
 /**
@@ -439,6 +439,20 @@ function markdownBlockToParagraphs(markdown: string): Paragraph[] {
       } catch {
         // Ignore malformed image data URL
       }
+      continue;
+    }
+
+    // First-line indented body paragraph (<p indent="first">...</p>) -> 0.5in indent + Thai Distribute
+    const indentMatch = trimmed.match(/^<p\s+indent="first">([\s\S]*)<\/p>$/i);
+    if (indentMatch) {
+      paragraphs.push(
+        new Paragraph({
+          alignment: AlignmentType.THAI_DISTRIBUTE,
+          indent: { firstLine: 720 },
+          spacing: THAI_LINE_SPACING,
+          children: parseInlineRuns(indentMatch[1]),
+        }),
+      );
       continue;
     }
 
