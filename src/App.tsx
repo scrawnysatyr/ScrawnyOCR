@@ -305,11 +305,11 @@ export function App() {
       <div className="bg-grid" />
       <div className="bg-glow" />
 
-      <div className="relative z-10 mx-auto flex min-h-screen max-w-[1600px] flex-col gap-3 px-4 py-3 sm:px-6 lg:h-full">
-        {/* Topbar */}
-        <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[#222226]/70 pb-3">
+      <div className="relative z-10 mx-auto flex min-h-screen max-w-[1600px] flex-col gap-3.5 px-4 py-3.5 sm:px-6 lg:h-full">
+        {/* Topbar Island */}
+        <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[#18181b]/95 px-4 py-2.5 shadow-lg backdrop-blur-xl">
           <div className="flex items-center gap-3">
-            <div className="grid h-9 w-9 place-items-center rounded-xl border border-[#222226] bg-[#18181b] text-[#ff7300] shadow-md">
+            <div className="grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-[#27272c] text-[#ff7300] shadow-md">
               <ScanText className="h-5 w-5" />
             </div>
             <div>
@@ -330,7 +330,7 @@ export function App() {
           <button
             type="button"
             onClick={() => setLang((prev) => (prev === 'th' ? 'en' : 'th'))}
-            className="inline-flex items-center gap-2 rounded-xl border border-[#222226] bg-[#18181b] px-3 py-1.5 text-xs font-semibold text-[#ffffff] transition-colors hover:border-[#ff7300]"
+            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-[#27272c] px-3 py-1.5 text-xs font-semibold text-[#ffffff] transition-colors hover:border-[#ff7300] hover:bg-[#303036]"
           >
             <Globe className="h-3.5 w-3.5 text-[#ff7300]" />
             <span className={lang === 'th' ? 'text-[#ff7300]' : 'text-[#8a8a93]'}>
