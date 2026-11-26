@@ -81,7 +81,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
   };
 
   return (
-    <section className="rounded-2xl border border-[#222226] bg-[#18181b]/90 p-3.5 shadow-lg backdrop-blur-sm">
+    <section className="flex min-h-0 flex-1 flex-col rounded-2xl border border-[#222226] bg-[#18181b]/90 p-3.5 shadow-lg backdrop-blur-sm">
       <input
         ref={inputRef}
         type="file"
@@ -104,7 +104,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
               inputRef.current?.click();
             }
           }}
-          className={`group relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-4 text-center transition-all ${
+          className={`group relative flex flex-1 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-4 text-center transition-all ${
             isDragging
               ? 'border-[#ff7300] bg-[#ff7300]/10 shadow-[0_0_24px_rgba(255,115,0,0.2)]'
               : 'border-[#222226] bg-[#050505]/70 hover:border-[#ff7300]/70 hover:bg-[#141416]/70'
@@ -131,7 +131,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          className={`rounded-xl border p-2.5 transition-all ${
+          className={`flex min-h-0 flex-1 flex-col rounded-xl border p-2.5 transition-all ${
             isDragging
               ? 'border-[#ff7300] bg-[#ff7300]/10'
               : 'border-[#222226] bg-[#050505]/80'

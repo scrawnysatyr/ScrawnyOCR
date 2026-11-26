@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Globe, Play, ScanText, ShieldCheck } from 'lucide-react';
+import { Globe, Megaphone, Play, ScanText, ShieldCheck } from 'lucide-react';
 import {
   checkModelResourceGuard,
   checkWebGpuSupport,
@@ -305,7 +305,7 @@ export function App() {
       <div className="bg-grid" />
       <div className="bg-glow" />
 
-      <div className="relative z-10 mx-auto flex min-h-screen max-w-[1600px] flex-col gap-3.5 px-4 py-3.5 sm:px-6 lg:h-full">
+      <div className="relative z-10 mx-auto flex min-h-screen w-full flex-col gap-3 px-3 py-3 sm:px-5 lg:h-full">
         {/* Topbar */}
         <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 py-1">
           <div className="flex items-center gap-3">
@@ -340,10 +340,30 @@ export function App() {
           </button>
         </header>
 
-        {/* Split Workspace: Left = Input & Controls, Right = Preview & Export */}
-        <main className="grid min-h-0 flex-1 gap-4 lg:grid-cols-12">
-          {/* Left Column: Input */}
-          <div className="flex min-h-0 flex-col gap-3 lg:col-span-5 lg:overflow-y-auto lg:pr-1">
+        {/* Full-Height Left & Right Ad Rails + Symmetrical 50/50 Center Workspace */}
+        <div className="flex min-h-0 flex-1 gap-3.5">
+          {/* Left Full-Height Ad Banner */}
+          <aside className="hidden xl:flex w-[180px] shrink-0 rounded-2xl border border-white/10 bg-[#18181b]/95 p-3 shadow-lg backdrop-blur-xl flex-col gap-2">
+            <div className="flex items-center justify-between px-1">
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-[#ff9440]">
+                <Megaphone className="h-3 w-3 text-[#ff7300]" />
+                Sponsored
+              </span>
+              <span className="text-[10px] text-[#8a8a93]">Ad</span>
+            </div>
+            <div className="flex flex-1 min-h-0 flex-col items-center justify-center rounded-xl border border-dashed border-white/15 bg-[#202024]/70 p-3 text-center">
+              <p className="text-xs leading-relaxed text-[#8a8a93]">
+                Ad space
+                <br />
+                160 × 600
+              </p>
+            </div>
+          </aside>
+
+          {/* Split Workspace: Symmetrical 50/50 Left & Right Panels */}
+          <main className="grid min-h-0 flex-1 gap-3.5 lg:grid-cols-2">
+            {/* Left Column: Input */}
+            <div className="flex min-h-0 flex-col gap-3">
             <DropZone
               t={t}
               selectedFile={selectedFile}
@@ -401,7 +421,7 @@ export function App() {
           </div>
 
           {/* Right Column: Preview Output */}
-          <div className="flex min-h-0 flex-col lg:col-span-7">
+          <div className="flex min-h-0 flex-col">
             <PreviewPane
               t={t}
               lang={lang}
@@ -428,7 +448,26 @@ export function App() {
               onExportTxt={handleExportTxt}
             />
           </div>
-        </main>
+          </main>
+
+          {/* Right Full-Height Ad Banner */}
+          <aside className="hidden xl:flex w-[180px] shrink-0 rounded-2xl border border-white/10 bg-[#18181b]/95 p-3 shadow-lg backdrop-blur-xl flex-col gap-2">
+            <div className="flex items-center justify-between px-1">
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-[#ff9440]">
+                <Megaphone className="h-3 w-3 text-[#ff7300]" />
+                Sponsored
+              </span>
+              <span className="text-[10px] text-[#8a8a93]">Ad</span>
+            </div>
+            <div className="flex flex-1 min-h-0 flex-col items-center justify-center rounded-xl border border-dashed border-white/15 bg-[#202024]/70 p-3 text-center">
+              <p className="text-xs leading-relaxed text-[#8a8a93]">
+                Ad space
+                <br />
+                160 × 600
+              </p>
+            </div>
+          </aside>
+        </div>
 
         {/* Footer */}
         <footer className="shrink-0 border-t border-[#222226]/70 pt-2 text-center text-[11px] text-[#8a8a93]">
