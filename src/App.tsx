@@ -309,20 +309,17 @@ export function App() {
         {/* Topbar */}
         <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 py-1">
           <div className="flex items-center gap-3">
-            <div className="grid h-9 w-9 place-items-center rounded-xl border border-[#222226] bg-[#18181b] text-[#ff7300] shadow-md">
+            <div className="grid h-10 w-10 place-items-center rounded-xl border border-[#222226] bg-[#18181b] text-[#ff7300] shadow-md">
               <ScanText className="h-5 w-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-base font-extrabold tracking-tight text-[#ffffff]">
-                  <span className="text-[#ff7300]">ocr</span>.scrawny<span className="text-[#ff7300]">.site</span>
-                </span>
-                <span className="hidden items-center gap-1 rounded-full border border-[#ff7300]/30 bg-[#ff7300]/10 px-2.5 py-0.5 text-[11px] font-medium text-[#ff9440] sm:inline-flex">
-                  <ShieldCheck className="h-3 w-3" />
-                  {t.clientSideBadge}
-                </span>
-              </div>
-              <p className="text-[11px] text-[#d4d4d8]">{t.brandSubtitle}</p>
+            <div className="flex items-center gap-2.5">
+              <span className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#ffffff] leading-none">
+                <span className="text-[#ff7300]">ocr</span>.scrawny<span className="text-[#ff7300]">.site</span>
+              </span>
+              <span className="hidden items-center gap-1 rounded-full border border-[#ff7300]/30 bg-[#ff7300]/10 px-2.5 py-0.5 text-[11px] font-medium text-[#ff9440] sm:inline-flex">
+                <ShieldCheck className="h-3 w-3" />
+                {t.clientSideBadge}
+              </span>
             </div>
           </div>
 
