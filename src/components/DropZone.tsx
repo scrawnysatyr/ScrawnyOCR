@@ -1,7 +1,8 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   FileText,
   Image as ImageIcon,
+  LayoutGrid,
   SlidersHorizontal,
   Trash2,
   UploadCloud,
@@ -9,6 +10,14 @@ import {
 import type { Translations } from '../i18n/translations';
 import type { NormalizedDocument } from '../types/ocr';
 import { formatBytes } from '../utils/modelCache';
+
+type GridSize = 'sm' | 'md' | 'lg';
+
+const OCR_GRID_CLASS_MAP: Record<GridSize, string> = {
+  sm: 'grid-cols-3 sm:grid-cols-4 gap-2',
+  md: 'grid-cols-2 sm:grid-cols-3 gap-2.5',
+  lg: 'grid-cols-1 sm:grid-cols-2 gap-3',
+};
 
 interface DropZoneProps {
   t: Translations;
@@ -39,6 +48,14 @@ export const DropZone: React.FC<DropZoneProps> = ({
 }) => {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [gridSize, setGridSize] = useState<GridSize>(() => {
+    const saved = localStorage.getItem('scrawny-ocr-grid-size');
+    return saved === 'sm' || saved === 'lg' ? saved : 'md';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('scrawny-ocr-grid-size', gridSize);
+  }, [gridSize]);
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -150,54 +167,80 @@ export const DropZone: React.FC<DropZoneProps> = ({
               type="button"
               onClick={onClearFile}
               disabled={disabled}
-              className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[#222226] bg-[#18181b] px-2 py-1 text-[11px] font-medium text-[#d4d4d8] transition-colors hover:border-red-500/60 hover:text-red-400 disabled:opacity-50"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-white/10 bg-[#27272c] px-3 py-1.5 text-xs sm:text-sm font-medium text-[#d4d4d8] transition-colors hover:border-red-500/60 hover:text-red-400 disabled:opacity-50"
             >
-              <Trash2 className="h-3 w-3" />
+              <Trash2 className="h-3.5 w-3.5" />
               {t.clearFile}
             </button>
           </div>
 
           {normalizedDoc && normalizedDoc.pages.length > 0 && (
-            <div className="mt-2.5 grid max-h-56 grid-cols-3 gap-2 overflow-y-auto pr-1 sm:grid-cols-4">
-              {normalizedDoc.pages.map((page) => {
-                const isSelected = selectedPageNumber === page.pageNumber;
-                const hasOcr = Boolean(ocrCompletedPages[page.pageNumber]);
-                return (
-                  <button
-                    key={page.pageNumber}
-                    type="button"
-                    onClick={() => onSelectPage(page.pageNumber)}
-                    className={`group flex flex-col overflow-hidden rounded-xl border text-left transition-all cursor-pointer ${
-                      isSelected
-                        ? 'border-[#ff7300] bg-[#ff7300]/10 ring-1 ring-[#ff7300]/60'
-                        : 'border-[#222226] bg-[#18181b] hover:border-[#ff7300]/50'
-                    }`}
-                  >
-                    <div className="relative h-24 w-full overflow-hidden bg-[#050505]">
-                      {page.previewUrl ? (
-                        <img
-                          src={page.previewUrl}
-                          alt={t.pageLabel(page.pageNumber)}
-                          className="h-full w-full object-cover object-top transition-transform group-hover:scale-[1.03]"
-                        />
-                      ) : (
-                        <div className="flex h-full items-center justify-center text-[10px] text-[#8a8a93]">
-                          {page.width}×{page.height}
-                        </div>
-                      )}
-                      {hasOcr && (
-                        <span className="absolute top-1 right-1 rounded-md bg-emerald-500/90 px-1.5 py-0.5 text-[9px] font-bold text-[#050505]">
-                          OCR
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center justify-between border-t border-[#222226] px-2 py-1 text-[10px] font-semibold text-[#d4d4d8]">
-                      <span>{t.pageLabel(page.pageNumber)}</span>
-                      {isSelected && <span className="h-1.5 w-1.5 rounded-full bg-[#ff7300]" />}
-                    </div>
-                  </button>
-                );
-              })}
+            <div className="mt-3 space-y-2">
+              {/* Grid Size Toolbar */}
+              <div className="flex items-center justify-between gap-2 px-0.5">
+                <span className="inline-flex items-center gap-1.5 text-xs text-[#d4d4d8]">
+                  <LayoutGrid className="h-3.5 w-3.5 text-[#ff7300]" />
+                  {t.pagesCount(normalizedDoc.pages.length)}
+                </span>
+                <div className="inline-flex rounded-lg border border-white/10 bg-[#18181b] p-0.5">
+                  {(['sm', 'md', 'lg'] as const).map((sz) => (
+                    <button
+                      key={sz}
+                      type="button"
+                      onClick={() => setGridSize(sz)}
+                      className={`px-2.5 py-0.5 rounded-md text-xs font-semibold transition cursor-pointer ${
+                        gridSize === sz
+                          ? 'bg-[#ff7300] text-[#050505]'
+                          : 'text-[#d4d4d8] hover:text-white'
+                      }`}
+                    >
+                      {sz.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className={`grid max-h-[44vh] ${OCR_GRID_CLASS_MAP[gridSize]} overflow-y-auto pr-1`}>
+                {normalizedDoc.pages.map((page) => {
+                  const isSelected = selectedPageNumber === page.pageNumber;
+                  const hasOcr = Boolean(ocrCompletedPages[page.pageNumber]);
+                  return (
+                    <button
+                      key={page.pageNumber}
+                      type="button"
+                      onClick={() => onSelectPage(page.pageNumber)}
+                      className={`group flex flex-col overflow-hidden rounded-xl border text-left transition-all cursor-pointer ${
+                        isSelected
+                          ? 'border-[#ff7300] bg-[#ff7300]/12 ring-2 ring-[#ff7300]/50'
+                          : 'border-[#222226] bg-[#18181b] hover:border-[#ff7300]/50'
+                      }`}
+                    >
+                      <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#050505]">
+                        {page.previewUrl ? (
+                          <img
+                            src={page.previewUrl}
+                            alt={t.pageLabel(page.pageNumber)}
+                            className="h-full w-full object-contain p-1 transition-transform group-hover:scale-[1.02]"
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-xs text-[#8a8a93]">
+                            {page.width}×{page.height}
+                          </div>
+                        )}
+                        {hasOcr && (
+                          <span className="absolute top-1.5 right-1.5 rounded-md bg-emerald-500/90 px-2 py-0.5 text-[10px] font-bold text-[#050505]">
+                            OCR
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between border-t border-[#222226] px-2.5 py-1.5 text-xs font-semibold text-[#d4d4d8]">
+                        <span>{t.pageLabel(page.pageNumber)}</span>
+                        {isSelected && <span className="h-2 w-2 rounded-full bg-[#ff7300]" />}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>

@@ -184,12 +184,12 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
       {/* Header & Mode Switcher */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#222226] pb-3.5">
         <div>
-          <h2 className="text-sm font-bold text-[#ffffff]">
+          <h2 className="text-base font-bold text-[#ffffff]">
             {selectedPage
               ? `${lang === 'th' ? 'หน้า' : 'Page'} ${selectedPage.pageNumber}`
               : t.previewTitle}
           </h2>
-          <p className="text-[11px] text-[#8a8a93]">
+          <p className="text-xs text-[#8a8a93]">
             {panelMode === 'original'
               ? lang === 'th'
                 ? 'ดูภาพต้นฉบับของหน้าที่เลือก'
@@ -200,29 +200,29 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
 
         <div className="flex flex-wrap items-center gap-2">
           {/* Primary 2-mode toggle: Original vs OCR Result */}
-          <div className="inline-flex rounded-lg border border-[#222226] bg-[#050505] p-0.5">
+          <div className="inline-flex rounded-xl border border-white/10 bg-[#27272c] p-1">
             <button
               type="button"
               onClick={() => setPanelMode('original')}
-              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-semibold transition-colors ${
+              className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs sm:text-sm font-semibold transition-colors ${
                 panelMode === 'original'
                   ? 'bg-[#ff7300] text-[#050505]'
                   : 'text-[#d4d4d8] hover:text-[#ffffff]'
               }`}
             >
-              <ImageIcon className="h-3.5 w-3.5" />
+              <ImageIcon className="h-4 w-4" />
               {lang === 'th' ? 'ต้นฉบับ' : 'Original'}
             </button>
             <button
               type="button"
               onClick={() => setPanelMode('ocr')}
-              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-semibold transition-colors ${
+              className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs sm:text-sm font-semibold transition-colors ${
                 panelMode === 'ocr'
                   ? 'bg-[#ff7300] text-[#050505]'
                   : 'text-[#d4d4d8] hover:text-[#ffffff]'
               }`}
             >
-              <ScanText className="h-3.5 w-3.5" />
+              <ScanText className="h-4 w-4" />
               {lang === 'th' ? 'ผลลัพธ์ OCR' : 'OCR Result'}
             </button>
           </div>
@@ -320,7 +320,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
             type="button"
             disabled={!hasAnyOcrResult || isExportingDocx}
             onClick={onExportDocx}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-[#ff7300] px-4 py-2 text-xs font-bold text-[#050505] shadow-[0_0_20px_rgba(255,115,0,0.25)] transition-all hover:bg-[#ff8826] disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-[#ff7300] px-4 py-2.5 text-xs sm:text-sm font-bold text-[#050505] shadow-[0_0_20px_rgba(255,115,0,0.25)] transition-all hover:bg-[#ff8826] disabled:cursor-not-allowed disabled:opacity-40"
           >
             <FileDown className="h-4 w-4" />
             {t.exportDocx}
@@ -330,7 +330,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
             type="button"
             disabled={!hasAnyOcrResult}
             onClick={onExportMd}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-[#222226] bg-[#050505] px-3.5 py-2 text-xs font-semibold text-[#ffffff] transition-colors hover:border-[#ff7300] hover:text-[#ff9440] disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-[#27272c] px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-[#ffffff] transition-colors hover:border-[#ff7300] hover:text-[#ff9440] disabled:cursor-not-allowed disabled:opacity-40"
           >
             <FileCode className="h-4 w-4" />
             {t.exportMd}
@@ -340,7 +340,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
             type="button"
             disabled={!hasAnyOcrResult}
             onClick={onExportTxt}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-[#222226] bg-[#050505] px-3.5 py-2 text-xs font-semibold text-[#ffffff] transition-colors hover:border-[#ff7300] hover:text-[#ff9440] disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-[#27272c] px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-[#ffffff] transition-colors hover:border-[#ff7300] hover:text-[#ff9440] disabled:cursor-not-allowed disabled:opacity-40"
           >
             <FileText className="h-4 w-4" />
             {t.exportTxt}

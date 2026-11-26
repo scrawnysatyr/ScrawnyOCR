@@ -327,7 +327,7 @@ export function App() {
           <button
             type="button"
             onClick={() => setLang((prev) => (prev === 'th' ? 'en' : 'th'))}
-            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-[#27272c] px-3 py-1.5 text-xs font-semibold text-[#ffffff] transition-colors hover:border-[#ff7300] hover:bg-[#303036]"
+            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-[#27272c] px-3.5 py-2 text-sm font-semibold text-[#ffffff] transition-colors hover:border-[#ff7300] hover:bg-[#303036]"
           >
             <Globe className="h-3.5 w-3.5 text-[#ff7300]" />
             <span className={lang === 'th' ? 'text-[#ff7300]' : 'text-[#8a8a93]'}>
