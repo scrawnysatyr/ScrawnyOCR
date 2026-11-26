@@ -23,7 +23,7 @@ const DET_UNCLIP = 1.5;
 const DET_MIN_SIZE = 3;
 const REC_HEIGHT = 48;
 const REC_MAX_WIDTH = 3200;
-const REC_DROP_BELOW = 0.65;
+const REC_DROP_BELOW = 0.5;
 const REC_MIN_CHARS = 1;
 
 /**
@@ -361,7 +361,8 @@ export class FastOnnxEngine implements IOcrEngine {
   }
 
   /**
-   * Crops, grayscales, flattens background, and normalizes to [-1, 1] CHW for rec.onnx.
+   * Crops (with small padding), bilinearly resizes, flattens light paper background,
+   * and normalizes to [-1, 1] CHW for rec.onnx without erasing Thai upper vowels/tones.
    */
   private prepareRecCropTensor(
     rgba: Uint8ClampedArray,
@@ -371,37 +372,64 @@ export class FastOnnxEngine implements IOcrEngine {
     dstW: number,
     dstH: number,
   ): Float32Array {
-    const cropX0 = box.x0;
-    const cropY0 = box.y0;
-    const cropW = Math.max(1, box.x1 - box.x0);
-    const cropH = Math.max(1, box.y1 - box.y0);
+    const padX = 4;
+    const padY = 4;
+    const cropX0 = Math.max(0, box.x0 - padX);
+    const cropY0 = Math.max(0, box.y0 - padY);
+    const cropX1 = Math.min(srcW - 1, box.x1 + padX);
+    const cropY1 = Math.min(srcH - 1, box.y1 + padY);
+    const cropW = Math.max(1, cropX1 - cropX0);
+    const cropH = Math.max(1, cropY1 - cropY0);
 
     const gray = new Float32Array(dstW * dstH);
     for (let y = 0; y < dstH; y++) {
-      const sy = Math.min(srcH - 1, Math.max(0, Math.floor(cropY0 + (y / dstH) * cropH)));
+      const fy = cropY0 + ((y + 0.5) / dstH) * cropH - 0.5;
+      const y0 = Math.max(0, Math.min(srcH - 1, Math.floor(fy)));
+      const y1 = Math.max(0, Math.min(srcH - 1, y0 + 1));
+      const wy = Math.max(0, Math.min(1, fy - y0));
+
       for (let x = 0; x < dstW; x++) {
-        const sx = Math.min(srcW - 1, Math.max(0, Math.floor(cropX0 + (x / dstW) * cropW)));
-        const idx = (sy * srcW + sx) * 4;
-        // Luminance
-        gray[y * dstW + x] =
-          0.299 * rgba[idx] + 0.587 * rgba[idx + 1] + 0.114 * rgba[idx + 2];
+        const fx = cropX0 + ((x + 0.5) / dstW) * cropW - 0.5;
+        const x0 = Math.max(0, Math.min(srcW - 1, Math.floor(fx)));
+        const x1 = Math.max(0, Math.min(srcW - 1, x0 + 1));
+        const wx = Math.max(0, Math.min(1, fx - x0));
+
+        const lum = (px: number, py: number) => {
+          const i = (py * srcW + px) * 4;
+          return 0.299 * rgba[i] + 0.587 * rgba[i + 1] + 0.114 * rgba[i + 2];
+        };
+
+        const l00 = lum(x0, y0);
+        const l10 = lum(x1, y0);
+        const l01 = lum(x0, y1);
+        const l11 = lum(x1, y1);
+        const top = l00 + (l10 - l00) * wx;
+        const bot = l01 + (l11 - l01) * wx;
+        gray[y * dstW + x] = top + (bot - top) * wy;
       }
     }
 
-    // Flatten background per column (matches OpenThai2.0 config.json "color": "flatten")
-    const marginRows = Math.max(2, Math.floor(dstH / 6));
+    // Estimate paper background per column using max luminance of top/bottom 2px edge
+    // so bold Thai upper vowels/tone marks never invert the background estimate.
     const diff = new Float32Array(dstW * dstH);
-    let maxDiff = 24;
+    let maxDiff = 48;
 
     for (let x = 0; x < dstW; x++) {
-      let bgSum = 0;
-      for (let y = 0; y < marginRows; y++) {
-        bgSum += gray[y * dstW + x];
-        bgSum += gray[(dstH - 1 - y) * dstW + x];
+      let colBg = Math.max(
+        gray[x],
+        gray[dstW + x],
+        gray[(dstH - 2) * dstW + x],
+        gray[(dstH - 1) * dstW + x],
+      );
+      if (colBg < 160) {
+        let colMax = colBg;
+        for (let y = 0; y < dstH; y++) {
+          if (gray[y * dstW + x] > colMax) colMax = gray[y * dstW + x];
+        }
+        colBg = colMax;
       }
-      const bg = bgSum / (marginRows * 2);
       for (let y = 0; y < dstH; y++) {
-        const d = Math.abs(gray[y * dstW + x] - bg);
+        const d = Math.max(0, colBg - gray[y * dstW + x]);
         diff[y * dstW + x] = d;
         if (d > maxDiff) maxDiff = d;
       }
@@ -452,8 +480,16 @@ export class FastOnnxEngine implements IOcrEngine {
       if (maxIdx !== 0 && maxIdx !== prevIdx) {
         const ch = this.charDict[maxIdx];
         if (ch !== undefined) {
+          let prob = maxVal;
+          if (maxVal < 0 || maxVal > 1) {
+            let sumExp = 0;
+            for (let c = 0; c < numClasses; c++) {
+              sumExp += Math.exp(logits[offset + c] - maxVal);
+            }
+            prob = sumExp > 0 ? 1 / sumExp : 0;
+          }
           chars.push(ch);
-          confSum += maxVal;
+          confSum += prob;
           confCount++;
         }
       }

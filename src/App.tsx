@@ -103,6 +103,8 @@ export function App() {
     message: '',
   });
   const [resultMarkdown, setResultMarkdown] = useState<string>('');
+  const [selectedPageNumber, setSelectedPageNumber] = useState<number | null>(null);
+  const [pageMarkdowns, setPageMarkdowns] = useState<Record<number, string>>({});
 
   const workerClientRef = useRef<OcrWorkerClient | null>(null);
 
@@ -154,6 +156,9 @@ export function App() {
           },
         });
         setNormalizedDoc(doc);
+        setSelectedPageNumber(doc.pages[0]?.pageNumber ?? null);
+        setPageMarkdowns({});
+        setResultMarkdown('');
         setProgress({ stage: 'idle', percent: 0, message: '' });
       } catch (err) {
         setNormalizedDoc(null);
@@ -181,6 +186,9 @@ export function App() {
   const handleClearFile = () => {
     setSelectedFile(null);
     setNormalizedDoc(null);
+    setSelectedPageNumber(null);
+    setPageMarkdowns({});
+    setResultMarkdown('');
     setProgress({ stage: 'idle', percent: 0, message: '' });
   };
 
@@ -278,6 +286,11 @@ export function App() {
           setProgress(evt);
         },
       );
+      const perPageMap: Record<number, string> = {};
+      for (const p of result.pages) {
+        perPageMap[p.pageNumber] = p.markdown;
+      }
+      setPageMarkdowns(perPageMap);
       setResultMarkdown(result.combinedMarkdown);
       setProgress({
         stage: 'done',
@@ -381,8 +394,13 @@ export function App() {
               t={t}
               selectedFile={selectedFile}
               normalizedDoc={normalizedDoc}
+              selectedPageNumber={selectedPageNumber}
+              ocrCompletedPages={Object.fromEntries(
+                Object.entries(pageMarkdowns).map(([k, v]) => [Number(k), v.trim().length > 0]),
+              )}
               pdfScale={pdfScale}
               disabled={isProcessing}
+              onSelectPage={setSelectedPageNumber}
               onPdfScaleChange={handlePdfScaleChange}
               onFileSelected={(file) => void handleNormalizeFile(file, pdfScale)}
               onClearFile={handleClearFile}
@@ -433,13 +451,27 @@ export function App() {
             <PreviewPane
               t={t}
               lang={lang}
-              markdown={resultMarkdown}
+              selectedPage={
+                normalizedDoc?.pages.find((p) => p.pageNumber === selectedPageNumber) ?? null
+              }
+              pageMarkdown={
+                selectedPageNumber !== null ? pageMarkdowns[selectedPageNumber] ?? '' : ''
+              }
+              hasAnyOcrResult={resultMarkdown.trim().length > 0}
               isExportingDocx={isExportingDocx}
-              onChangeMarkdown={setResultMarkdown}
+              onChangePageMarkdown={(val) => {
+                if (selectedPageNumber === null) return;
+                const nextMap = { ...pageMarkdowns, [selectedPageNumber]: val };
+                setPageMarkdowns(nextMap);
+                const combined = (normalizedDoc?.pages ?? [])
+                  .map((p) => (nextMap[p.pageNumber] ?? '').trim())
+                  .filter(Boolean)
+                  .join('\n\n---\n\n');
+                setResultMarkdown(combined);
+              }}
               onExportDocx={() => void handleExportDocx()}
               onExportMd={handleExportMd}
               onExportTxt={handleExportTxt}
-              onLoadSample={() => setResultMarkdown(SAMPLE_THAI_UNIFIED_DOC)}
             />
           </div>
         </main>

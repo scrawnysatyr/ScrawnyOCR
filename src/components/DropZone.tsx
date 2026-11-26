@@ -14,8 +14,11 @@ interface DropZoneProps {
   t: Translations;
   selectedFile: File | null;
   normalizedDoc: NormalizedDocument | null;
+  selectedPageNumber: number | null;
+  ocrCompletedPages: Record<number, boolean>;
   pdfScale: number;
   disabled: boolean;
+  onSelectPage: (pageNumber: number) => void;
   onPdfScaleChange: (scale: number) => void;
   onFileSelected: (file: File) => void;
   onClearFile: () => void;
@@ -25,8 +28,11 @@ export const DropZone: React.FC<DropZoneProps> = ({
   t,
   selectedFile,
   normalizedDoc,
+  selectedPageNumber,
+  ocrCompletedPages,
   pdfScale,
   disabled,
+  onSelectPage,
   onPdfScaleChange,
   onFileSelected,
   onClearFile,
@@ -152,28 +158,46 @@ export const DropZone: React.FC<DropZoneProps> = ({
           </div>
 
           {normalizedDoc && normalizedDoc.pages.length > 0 && (
-            <div className="mt-2 flex gap-2 overflow-x-auto pb-0.5">
-              {normalizedDoc.pages.map((page) => (
-                <div
-                  key={page.pageNumber}
-                  className="w-14 shrink-0 overflow-hidden rounded-md border border-[#222226] bg-[#0c0c0d]"
-                >
-                  {page.previewUrl ? (
-                    <img
-                      src={page.previewUrl}
-                      alt={t.pageLabel(page.pageNumber)}
-                      className="h-16 w-full object-cover object-top"
-                    />
-                  ) : (
-                    <div className="flex h-16 items-center justify-center text-[10px] text-[#8a8a93]">
-                      {page.width}×{page.height}
+            <div className="mt-2.5 grid max-h-56 grid-cols-3 gap-2 overflow-y-auto pr-1 sm:grid-cols-4">
+              {normalizedDoc.pages.map((page) => {
+                const isSelected = selectedPageNumber === page.pageNumber;
+                const hasOcr = Boolean(ocrCompletedPages[page.pageNumber]);
+                return (
+                  <button
+                    key={page.pageNumber}
+                    type="button"
+                    onClick={() => onSelectPage(page.pageNumber)}
+                    className={`group flex flex-col overflow-hidden rounded-xl border text-left transition-all cursor-pointer ${
+                      isSelected
+                        ? 'border-[#ff7300] bg-[#ff7300]/10 ring-1 ring-[#ff7300]/60'
+                        : 'border-[#222226] bg-[#0c0c0d] hover:border-[#ff7300]/50'
+                    }`}
+                  >
+                    <div className="relative h-24 w-full overflow-hidden bg-[#050505]">
+                      {page.previewUrl ? (
+                        <img
+                          src={page.previewUrl}
+                          alt={t.pageLabel(page.pageNumber)}
+                          className="h-full w-full object-cover object-top transition-transform group-hover:scale-[1.03]"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-[10px] text-[#8a8a93]">
+                          {page.width}×{page.height}
+                        </div>
+                      )}
+                      {hasOcr && (
+                        <span className="absolute top-1 right-1 rounded-md bg-emerald-500/90 px-1.5 py-0.5 text-[9px] font-bold text-[#050505]">
+                          OCR
+                        </span>
+                      )}
                     </div>
-                  )}
-                  <div className="border-t border-[#222226] px-1 py-0.5 text-center text-[9px] font-medium text-[#d4d4d8]">
-                    {t.pageLabel(page.pageNumber)}
-                  </div>
-                </div>
-              ))}
+                    <div className="flex items-center justify-between border-t border-[#222226] px-2 py-1 text-[10px] font-semibold text-[#d4d4d8]">
+                      <span>{t.pageLabel(page.pageNumber)}</span>
+                      {isSelected && <span className="h-1.5 w-1.5 rounded-full bg-[#ff7300]" />}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
