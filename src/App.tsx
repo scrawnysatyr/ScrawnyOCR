@@ -35,49 +35,6 @@ import {
 } from './utils/modelCache';
 import { normalizeInputFile } from './utils/pdfToImages';
 
-const SAMPLE_THAI_UNIFIED_DOC = `# รายงานสรุปผลการดำเนินงานประจำไตรมาสที่ 3
-
-เอกสารฉบับนี้จัดทำขึ้นเพื่อทดสอบการจัดรูปแบบภาษาไทยทั้ง **สระบน-ล่าง** และ **วรรณยุกต์ (เอก โท ตรี จัตวา)** รวมถึงการผสานเซลล์ตารางในไฟล์ Word (.docx) ด้วยฟอนต์มาตรฐาน **TH Sarabun New**
-
-## 1. หัวข้อสำคัญในการประมวลผล
-- รองรับไฟล์ภาพ (JPG, PNG, WEBP) และเอกสาร PDF หลายหน้า
-- แปลงข้อความและตารางให้อยู่ในรูปแบบมาตรฐานกลาง **Markdown + HTML Table**
-- ข้อความไหลข้ามหน้าอัตโนมัติ (Auto Reflow) โดยไม่ใช้ Text Box ลอยๆ
-
-1. ขั้นตอนที่หนึ่ง: เตรียมภาพความละเอียดสูง (Scale 2.75x)
-2. ขั้นตอนที่สอง: ประมวลผลผ่าน Web Worker บนเบราว์เซอร์ 100%
-3. ขั้นตอนที่สาม: ส่งออกเป็นไฟล์ .docx, .md หรือ .txt
-
-## 2. ตารางสรุปข้อมูลเปรียบเทียบ (ทดสอบ rowspan และ colspan)
-
-<table>
-  <thead>
-    <tr>
-      <th rowspan="2">รายการ</th>
-      <th colspan="2">โหมดการทำงานบนเบราว์เซอร์</th>
-      <th rowspan="2">หมายเหตุ</th>
-    </tr>
-    <tr>
-      <th>Fast Mode (WASM)</th>
-      <th>High Accuracy (WebGPU)</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>เอนจินหลัก</td>
-      <td>onnxruntime-web (CPU)</td>
-      <td>Vision-Language (GPU)</td>
-      <td>ทำงานออฟไลน์หลังแคชโมเดล</td>
-    </tr>
-    <tr>
-      <td>การอ่านตารางซับซ้อน</td>
-      <td>โครงสร้างพื้นฐาน</td>
-      <td>รองรับ rowspan / colspan เต็มรูปแบบ</td>
-      <td>ส่งออกเป็น Native Table ใน Word</td>
-    </tr>
-  </tbody>
-</table>`;
-
 export function App() {
   const [lang, setLang] = useState<Language>('th');
   const t = TRANSLATIONS[lang];
