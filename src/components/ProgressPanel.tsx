@@ -52,7 +52,7 @@ export const ProgressPanel: React.FC<ProgressPanelProps> = ({
           ? 'border-red-500/40 bg-red-500/10'
           : isDone
             ? 'border-emerald-500/40 bg-emerald-500/10'
-            : 'border-[#ff7300]/40 bg-[#1c1c22]/90'
+            : 'border-[#ff7300]/40 bg-[#0c0c0d]/90'
       }`}
     >
       <div className="flex items-center justify-between gap-3">
@@ -66,7 +66,7 @@ export const ProgressPanel: React.FC<ProgressPanelProps> = ({
                 ? 'text-red-300'
                 : isDone
                   ? 'text-emerald-300'
-                  : 'text-[#f4f4f5]'
+                  : 'text-[#ffffff]'
             }`}
           >
             {getLocalizedMessage()}
@@ -82,7 +82,7 @@ export const ProgressPanel: React.FC<ProgressPanelProps> = ({
             <button
               type="button"
               onClick={onCancel}
-              className="inline-flex items-center gap-1 rounded-lg border border-[#2c2c36] bg-[#141418] px-2.5 py-1 text-xs font-medium text-[#a1a1aa] transition-colors hover:border-red-500/60 hover:text-red-400"
+              className="inline-flex items-center gap-1 rounded-lg border border-[#222226] bg-[#050505] px-2.5 py-1 text-xs font-medium text-[#d4d4d8] transition-colors hover:border-red-500/60 hover:text-red-400"
             >
               <XCircle className="h-3.5 w-3.5" />
               {t.cancelOcr}
@@ -91,7 +91,7 @@ export const ProgressPanel: React.FC<ProgressPanelProps> = ({
         </div>
       </div>
 
-      <div className="mt-2.5 h-2 w-full overflow-hidden rounded-full bg-[#141418]">
+      <div className="mt-2.5 h-2 w-full overflow-hidden rounded-full bg-[#050505]">
         <div
           className={`h-full rounded-full transition-all duration-300 ${
             isError

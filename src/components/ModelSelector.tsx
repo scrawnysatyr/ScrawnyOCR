@@ -58,9 +58,9 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
   const localInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   return (
-    <section className="rounded-2xl border border-[#2c2c36] bg-[#1c1c22]/90 p-3.5 shadow-lg backdrop-blur-sm">
+    <section className="rounded-2xl border border-[#222226] bg-[#0c0c0d]/90 p-3.5 shadow-lg backdrop-blur-sm">
       <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="flex items-center gap-2 text-xs font-bold text-[#f4f4f5]">
+        <h2 className="flex items-center gap-2 text-xs font-bold text-[#ffffff]">
           <Cpu className="h-3.5 w-3.5 text-[#ff7300]" />
           {t.modelSectionTitle}
         </h2>
@@ -69,12 +69,12 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
           className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${
             webGpuSupported
               ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
-              : 'border-[#2c2c36] bg-[#141418] text-[#a1a1aa]'
+              : 'border-[#222226] bg-[#050505] text-[#d4d4d8]'
           }`}
         >
           <span
             className={`h-1.5 w-1.5 rounded-full ${
-              webGpuSupported ? 'bg-emerald-400' : 'bg-[#71717a]'
+              webGpuSupported ? 'bg-emerald-400' : 'bg-[#8a8a93]'
             }`}
           />
           {webGpuSupported ? t.webgpuSupported : t.webgpuUnsupported}
@@ -103,8 +103,8 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
               }}
               className={`flex flex-col justify-between rounded-xl border p-3 text-left transition-all ${
                 isSelected
-                  ? 'border-[#ff7300] bg-[#ff7300]/10 shadow-[0_0_20px_rgba(255,115,0,0.12)]'
-                  : 'border-[#2c2c36] bg-[#141418]/75 hover:border-[#ff7300]/50 hover:bg-[#22222a]/70'
+                  ? 'border-[#ff7300] bg-[#ff7300]/10 shadow-[0_0_20px_rgba(255, 115, 0, 0.16)]'
+                  : 'border-[#222226] bg-[#050505]/75 hover:border-[#ff7300]/50 hover:bg-[#141416]/70'
               } ${disabled ? 'pointer-events-none opacity-65' : 'cursor-pointer'}`}
             >
               <div>
@@ -113,8 +113,8 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                     <div
                       className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
                         isSelected
-                          ? 'bg-[#ff7300] text-[#141418]'
-                          : 'bg-[#1c1c22] text-[#ff7300]'
+                          ? 'bg-[#ff7300] text-[#050505]'
+                          : 'bg-[#0c0c0d] text-[#ff7300]'
                       }`}
                     >
                       {model.mode === 'fast' ? (
@@ -124,7 +124,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                       )}
                     </div>
                     <div className="min-w-0">
-                      <h3 className="truncate text-xs font-bold text-[#f4f4f5]">
+                      <h3 className="truncate text-xs font-bold text-[#ffffff]">
                         {lang === 'th' ? model.nameTh : model.name}
                       </h3>
                       <p className="truncate text-[10px] font-medium text-[#ff9440]">
@@ -133,12 +133,12 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                     </div>
                   </div>
 
-                  <span className="font-mono-code shrink-0 rounded-md border border-[#2c2c36] bg-[#1c1c22] px-1.5 py-0.5 text-[10px] text-[#a1a1aa]">
+                  <span className="font-mono-code shrink-0 rounded-md border border-[#222226] bg-[#0c0c0d] px-1.5 py-0.5 text-[10px] text-[#d4d4d8]">
                     ~{model.estimatedSizeMB} MB
                   </span>
                 </div>
 
-                <p className="mt-1.5 line-clamp-2 text-[11px] leading-snug text-[#a1a1aa]">
+                <p className="mt-1.5 line-clamp-2 text-[11px] leading-snug text-[#d4d4d8]">
                   {lang === 'th' ? model.descriptionTh : model.description}
                 </p>
 
@@ -151,7 +151,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
 
               {/* Per-Model Cache Status & Actions */}
               <div
-                className="mt-2.5 flex flex-wrap items-center justify-between gap-1.5 border-t border-[#2c2c36]/80 pt-2"
+                className="mt-2.5 flex flex-wrap items-center justify-between gap-1.5 border-t border-[#222226]/80 pt-2"
                 onClick={(e) => e.stopPropagation()}
               >
                 {isCached ? (
@@ -160,7 +160,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                     {t.cachedBadge} ({formatBytes(cacheInfo.cachedBytes)})
                   </span>
                 ) : (
-                  <span className="text-[11px] text-[#71717a]">{t.notCachedBadge}</span>
+                  <span className="text-[11px] text-[#8a8a93]">{t.notCachedBadge}</span>
                 )}
 
                 <div className="flex items-center gap-1.5">
@@ -186,7 +186,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                         type="button"
                         disabled={disabled || isDownloading}
                         onClick={() => localInputRefs.current[model.id]?.click()}
-                        className="inline-flex items-center gap-1 rounded-lg border border-[#2c2c36] bg-[#1c1c22] px-2.5 py-1 text-[11px] font-medium text-[#a1a1aa] transition-colors hover:border-[#ff7300]/60 hover:text-[#f4f4f5] disabled:opacity-50"
+                        className="inline-flex items-center gap-1 rounded-lg border border-[#222226] bg-[#0c0c0d] px-2.5 py-1 text-[11px] font-medium text-[#d4d4d8] transition-colors hover:border-[#ff7300]/60 hover:text-[#ffffff] disabled:opacity-50"
                       >
                         <FolderOpen className="h-3 w-3" />
                         {lang === 'th' ? 'นำเข้าจากเครื่อง' : 'Import Local'}
@@ -197,7 +197,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                           type="button"
                           disabled={disabled || isDownloading}
                           onClick={() => onDownloadModel(model)}
-                          className="inline-flex items-center gap-1 rounded-lg border border-[#ff7300]/50 bg-[#ff7300]/15 px-2.5 py-1 text-[11px] font-semibold text-[#ff9440] transition-colors hover:bg-[#ff7300] hover:text-[#141418] disabled:opacity-50"
+                          className="inline-flex items-center gap-1 rounded-lg border border-[#ff7300]/50 bg-[#ff7300]/15 px-2.5 py-1 text-[11px] font-semibold text-[#ff9440] transition-colors hover:bg-[#ff7300] hover:text-[#050505] disabled:opacity-50"
                         >
                           <Download className="h-3 w-3" />
                           {isDownloading
@@ -213,7 +213,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                       type="button"
                       disabled={disabled}
                       onClick={() => onDeleteModelCache(model)}
-                      className="inline-flex items-center gap-1 rounded-lg border border-[#2c2c36] bg-[#1c1c22] px-2.5 py-1 text-[11px] font-medium text-[#a1a1aa] transition-colors hover:border-red-500/60 hover:text-red-400 disabled:opacity-50"
+                      className="inline-flex items-center gap-1 rounded-lg border border-[#222226] bg-[#0c0c0d] px-2.5 py-1 text-[11px] font-medium text-[#d4d4d8] transition-colors hover:border-red-500/60 hover:text-red-400 disabled:opacity-50"
                     >
                       <Trash2 className="h-3 w-3" />
                       {t.deleteModelCache}
@@ -227,9 +227,9 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
       </div>
 
       {/* Persistent Cache Summary Bar */}
-      <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#2c2c36] bg-[#141418]/75 px-3 py-1.5">
-        <div className="flex flex-wrap items-center gap-2 text-[11px] text-[#a1a1aa]">
-          <span className="inline-flex items-center gap-1 font-medium text-[#f4f4f5]">
+      <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#222226] bg-[#050505]/75 px-3 py-1.5">
+        <div className="flex flex-wrap items-center gap-2 text-[11px] text-[#d4d4d8]">
+          <span className="inline-flex items-center gap-1 font-medium text-[#ffffff]">
             <HardDrive className="h-3 w-3 text-[#ff7300]" />
             {t.cacheSectionTitle}:
           </span>
@@ -239,7 +239,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
               {formatBytes(totalCacheBytes)}
             </strong>
           </span>
-          <span className="rounded-md border border-[#2c2c36] bg-[#1c1c22] px-1.5 py-0.5 text-[10px]">
+          <span className="rounded-md border border-[#222226] bg-[#0c0c0d] px-1.5 py-0.5 text-[10px]">
             {persistentGranted ? t.cachePersistentOn : t.cachePersistentOff}
           </span>
         </div>
@@ -248,7 +248,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
           type="button"
           disabled={disabled || totalCacheBytes === 0}
           onClick={onClearAllCache}
-          className="inline-flex items-center gap-1 rounded-lg border border-[#2c2c36] bg-[#1c1c22] px-2.5 py-1 text-[11px] font-medium text-[#a1a1aa] transition-colors hover:border-red-500/60 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex items-center gap-1 rounded-lg border border-[#222226] bg-[#0c0c0d] px-2.5 py-1 text-[11px] font-medium text-[#d4d4d8] transition-colors hover:border-red-500/60 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <Trash2 className="h-3 w-3" />
           {t.deleteAllCache}

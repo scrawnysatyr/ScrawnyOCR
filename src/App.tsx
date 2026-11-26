@@ -331,20 +331,20 @@ export function App() {
   };
 
   return (
-    <div className="relative min-h-screen bg-[#141418] text-[#f4f4f5] lg:h-dvh lg:overflow-hidden">
+    <div className="relative min-h-screen bg-[#050505] text-[#ffffff] lg:h-dvh lg:overflow-hidden">
       <div className="bg-grid" />
       <div className="bg-glow" />
 
       <div className="relative z-10 mx-auto flex min-h-screen max-w-[1600px] flex-col gap-3 px-4 py-3 sm:px-6 lg:h-full">
         {/* Topbar */}
-        <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[#2c2c36]/70 pb-3">
+        <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[#222226]/70 pb-3">
           <div className="flex items-center gap-3">
-            <div className="grid h-9 w-9 place-items-center rounded-xl border border-[#2c2c36] bg-[#1c1c22] text-[#ff7300] shadow-md">
+            <div className="grid h-9 w-9 place-items-center rounded-xl border border-[#222226] bg-[#0c0c0d] text-[#ff7300] shadow-md">
               <ScanText className="h-5 w-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-base font-extrabold tracking-tight text-[#f4f4f5]">
+                <span className="text-base font-extrabold tracking-tight text-[#ffffff]">
                   Scrawny<span className="text-[#ff7300]">OCR</span>
                 </span>
                 <span className="hidden items-center gap-1 rounded-full border border-[#ff7300]/30 bg-[#ff7300]/10 px-2.5 py-0.5 text-[11px] font-medium text-[#ff9440] sm:inline-flex">
@@ -352,7 +352,7 @@ export function App() {
                   {t.clientSideBadge}
                 </span>
               </div>
-              <p className="text-[11px] text-[#a1a1aa]">{t.brandSubtitle}</p>
+              <p className="text-[11px] text-[#d4d4d8]">{t.brandSubtitle}</p>
             </div>
           </div>
 
@@ -360,14 +360,14 @@ export function App() {
           <button
             type="button"
             onClick={() => setLang((prev) => (prev === 'th' ? 'en' : 'th'))}
-            className="inline-flex items-center gap-2 rounded-xl border border-[#2c2c36] bg-[#1c1c22] px-3 py-1.5 text-xs font-semibold text-[#f4f4f5] transition-colors hover:border-[#ff7300]"
+            className="inline-flex items-center gap-2 rounded-xl border border-[#222226] bg-[#0c0c0d] px-3 py-1.5 text-xs font-semibold text-[#ffffff] transition-colors hover:border-[#ff7300]"
           >
             <Globe className="h-3.5 w-3.5 text-[#ff7300]" />
-            <span className={lang === 'th' ? 'text-[#ff7300]' : 'text-[#71717a]'}>
+            <span className={lang === 'th' ? 'text-[#ff7300]' : 'text-[#8a8a93]'}>
               TH
             </span>
-            <span className="text-[#2c2c36]">/</span>
-            <span className={lang === 'en' ? 'text-[#ff7300]' : 'text-[#71717a]'}>
+            <span className="text-[#222226]">/</span>
+            <span className={lang === 'en' ? 'text-[#ff7300]' : 'text-[#8a8a93]'}>
               EN
             </span>
           </button>
@@ -413,7 +413,7 @@ export function App() {
                 type="button"
                 disabled={!normalizedDoc || isProcessing || downloadingModelId !== null}
                 onClick={() => void handleRunOcr()}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#ff7300] px-6 py-2.5 text-sm font-bold text-[#141418] shadow-[0_0_24px_rgba(255,115,0,0.28)] transition-all hover:bg-[#ff8826] disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#ff7300] px-6 py-2.5 text-sm font-bold text-[#050505] shadow-[0_0_24px_rgba(255,115,0,0.28)] transition-all hover:bg-[#ff8826] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <Play className="h-4 w-4 fill-current" />
                 {isProcessing ? t.processingOcr : t.startOcr}
@@ -445,7 +445,7 @@ export function App() {
         </main>
 
         {/* Footer */}
-        <footer className="shrink-0 border-t border-[#2c2c36]/70 pt-2 text-center text-[11px] text-[#71717a]">
+        <footer className="shrink-0 border-t border-[#222226]/70 pt-2 text-center text-[11px] text-[#8a8a93]">
           {t.privacyFooter}
         </footer>
       </div>
