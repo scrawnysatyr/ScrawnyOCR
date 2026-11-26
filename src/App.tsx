@@ -306,16 +306,16 @@ export function App() {
       <div className="bg-glow" />
 
       <div className="relative z-10 mx-auto flex min-h-screen max-w-[1600px] flex-col gap-3.5 px-4 py-3.5 sm:px-6 lg:h-full">
-        {/* Topbar Island */}
-        <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[#18181b]/95 px-4 py-2.5 shadow-lg backdrop-blur-xl">
+        {/* Topbar */}
+        <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 py-1">
           <div className="flex items-center gap-3">
-            <div className="grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-[#27272c] text-[#ff7300] shadow-md">
+            <div className="grid h-9 w-9 place-items-center rounded-xl border border-[#222226] bg-[#18181b] text-[#ff7300] shadow-md">
               <ScanText className="h-5 w-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-base font-extrabold tracking-tight text-[#ffffff]">
-                  Scrawny<span className="text-[#ff7300]">OCR</span>
+                  <span className="text-[#ff7300]">ocr</span>.scrawny<span className="text-[#ff7300]">.site</span>
                 </span>
                 <span className="hidden items-center gap-1 rounded-full border border-[#ff7300]/30 bg-[#ff7300]/10 px-2.5 py-0.5 text-[11px] font-medium text-[#ff9440] sm:inline-flex">
                   <ShieldCheck className="h-3 w-3" />
