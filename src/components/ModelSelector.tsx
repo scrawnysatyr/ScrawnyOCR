@@ -54,7 +54,11 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
   onDeleteModelCache,
   onClearAllCache,
 }) => {
-  const models: ModelDefinition[] = [MODEL_REGISTRY.fast, MODEL_REGISTRY.accurate];
+  const models: ModelDefinition[] = [
+    MODEL_REGISTRY.fast,
+    MODEL_REGISTRY.hybrid,
+    MODEL_REGISTRY.accurate,
+  ];
   const localInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   return (
@@ -82,7 +86,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
       </div>
 
       {/* Mode Cards */}
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-3">
         {models.map((model) => {
           const isSelected = selectedMode === model.mode;
           const cacheInfo = cacheStatuses[model.id];

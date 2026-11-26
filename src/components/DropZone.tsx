@@ -81,7 +81,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
   };
 
   return (
-    <section className="flex min-h-0 flex-1 flex-col rounded-2xl border border-[#222226] bg-[#18181b]/90 p-3.5 shadow-lg backdrop-blur-sm">
+    <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[#222226] bg-[#18181b]/90 p-3.5 shadow-lg backdrop-blur-sm">
       <input
         ref={inputRef}
         type="file"
@@ -131,7 +131,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          className={`flex min-h-0 flex-1 flex-col rounded-xl border p-2.5 transition-all ${
+          className={`flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border p-2.5 transition-all ${
             isDragging
               ? 'border-[#ff7300] bg-[#ff7300]/10'
               : 'border-[#222226] bg-[#050505]/80'
@@ -175,9 +175,9 @@ export const DropZone: React.FC<DropZoneProps> = ({
           </div>
 
           {normalizedDoc && normalizedDoc.pages.length > 0 && (
-            <div className="mt-3 space-y-2">
+            <div className="mt-3 flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
               {/* Grid Size Toolbar */}
-              <div className="flex items-center justify-between gap-2 px-0.5">
+              <div className="flex shrink-0 items-center justify-between gap-2 px-0.5">
                 <span className="inline-flex items-center gap-1.5 text-xs text-[#d4d4d8]">
                   <LayoutGrid className="h-3.5 w-3.5 text-[#ff7300]" />
                   {t.pagesCount(normalizedDoc.pages.length)}
@@ -200,46 +200,48 @@ export const DropZone: React.FC<DropZoneProps> = ({
                 </div>
               </div>
 
-              <div className={`grid max-h-[44vh] ${OCR_GRID_CLASS_MAP[gridSize]} overflow-y-auto pr-1`}>
-                {normalizedDoc.pages.map((page) => {
-                  const isSelected = selectedPageNumber === page.pageNumber;
-                  const hasOcr = Boolean(ocrCompletedPages[page.pageNumber]);
-                  return (
-                    <button
-                      key={page.pageNumber}
-                      type="button"
-                      onClick={() => onSelectPage(page.pageNumber)}
-                      className={`group flex flex-col overflow-hidden rounded-xl border text-left transition-all cursor-pointer ${
-                        isSelected
-                          ? 'border-[#ff7300] bg-[#ff7300]/12 ring-2 ring-[#ff7300]/50'
-                          : 'border-[#222226] bg-[#18181b] hover:border-[#ff7300]/50'
-                      }`}
-                    >
-                      <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#050505]">
-                        {page.previewUrl ? (
-                          <img
-                            src={page.previewUrl}
-                            alt={t.pageLabel(page.pageNumber)}
-                            className="h-full w-full object-contain p-1 transition-transform group-hover:scale-[1.02]"
-                          />
-                        ) : (
-                          <div className="flex h-full items-center justify-center text-xs text-[#8a8a93]">
-                            {page.width}×{page.height}
-                          </div>
-                        )}
-                        {hasOcr && (
-                          <span className="absolute top-1.5 right-1.5 rounded-md bg-emerald-500/90 px-2 py-0.5 text-[10px] font-bold text-[#050505]">
-                            OCR
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center justify-between border-t border-[#222226] px-2.5 py-1.5 text-xs font-semibold text-[#d4d4d8]">
-                        <span>{t.pageLabel(page.pageNumber)}</span>
-                        {isSelected && <span className="h-2 w-2 rounded-full bg-[#ff7300]" />}
-                      </div>
-                    </button>
-                  );
-                })}
+              <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+                <div className={`grid ${OCR_GRID_CLASS_MAP[gridSize]}`}>
+                  {normalizedDoc.pages.map((page) => {
+                    const isSelected = selectedPageNumber === page.pageNumber;
+                    const hasOcr = Boolean(ocrCompletedPages[page.pageNumber]);
+                    return (
+                      <button
+                        key={page.pageNumber}
+                        type="button"
+                        onClick={() => onSelectPage(page.pageNumber)}
+                        className={`group flex flex-col overflow-hidden rounded-xl border text-left transition-all cursor-pointer ${
+                          isSelected
+                            ? 'border-[#ff7300] bg-[#ff7300]/12 ring-2 ring-[#ff7300]/50'
+                            : 'border-[#222226] bg-[#18181b] hover:border-[#ff7300]/50'
+                        }`}
+                      >
+                        <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#050505]">
+                          {page.previewUrl ? (
+                            <img
+                              src={page.previewUrl}
+                              alt={t.pageLabel(page.pageNumber)}
+                              className="h-full w-full object-contain p-1 transition-transform group-hover:scale-[1.02]"
+                            />
+                          ) : (
+                            <div className="flex h-full items-center justify-center text-xs text-[#8a8a93]">
+                              {page.width}×{page.height}
+                            </div>
+                          )}
+                          {hasOcr && (
+                            <span className="absolute top-1.5 right-1.5 rounded-md bg-emerald-500/90 px-2 py-0.5 text-[10px] font-bold text-[#050505]">
+                              OCR
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between border-t border-[#222226] px-2.5 py-1.5 text-xs font-semibold text-[#d4d4d8]">
+                          <span>{t.pageLabel(page.pageNumber)}</span>
+                          {isSelected && <span className="h-2 w-2 rounded-full bg-[#ff7300]" />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}
@@ -247,7 +249,7 @@ export const DropZone: React.FC<DropZoneProps> = ({
       )}
 
       {/* PDF Scale Control */}
-      <div className="mt-2.5 flex items-center justify-between gap-3 rounded-xl border border-[#222226] bg-[#050505]/70 px-3 py-1.5">
+      <div className="mt-2.5 flex shrink-0 items-center justify-between gap-3 rounded-xl border border-[#222226] bg-[#050505]/70 px-3 py-1.5">
         <div className="flex items-center gap-2">
           <SlidersHorizontal className="h-3.5 w-3.5 shrink-0 text-[#ff7300]" />
           <span className="text-[11px] font-semibold text-[#ffffff]">

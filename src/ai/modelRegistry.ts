@@ -43,6 +43,48 @@ export const MODEL_REGISTRY: Record<ModelMode, ModelDefinition> = {
       },
     ],
   },
+  hybrid: {
+    id: 'hybrid-vlm-text-ocr-webgpu',
+    mode: 'hybrid',
+    backend: 'webgpu',
+    name: 'Layout + Table + Text OCR (WebGPU)',
+    nameTh: 'โหมดจัดหน้า + ตาราง + Text OCR (WebGPU)',
+    badge: 'Garuda / Layout / Table + OpenThai2.0 (WebGPU)',
+    badgeTh: 'ตราครุฑ / จัดหน้าไทย / ตาราง + OpenThai2.0 (WebGPU)',
+    description:
+      'Lightweight WebGPU Text OCR + layout & table reconstruction: extracts top emblem (Garuda), Thai Distributed prose, dividers, page numbers, committee/signature blocks, and tables into native .docx.',
+    descriptionTh:
+      'Text OCR บน WebGPU พร้อมวิเคราะห์โครงสร้างเอกสารไทยและตาราง: ดึงตราครุฑ, จัดชิดขอบแบบไทย, เส้นคั่น, เลขหน้า, ช่องเซ็นชื่อ/คณะกรรมการ และตาราง เพื่อส่งออก .docx',
+    estimatedSizeMB: 4.3,
+    repoUrl: 'https://huggingface.co/iapp/OpenThai2.0-OCR-Text',
+    onnxReady: true,
+    artifacts: [
+      {
+        key: 'openthaigpt-ocr-text-det',
+        label: 'det.onnx (PP-OCRv6-tiny)',
+        url: 'https://huggingface.co/iapp/OpenThai2.0-OCR-Text/resolve/main/det.onnx',
+        approxBytes: 1_850_000,
+      },
+      {
+        key: 'openthaigpt-ocr-text-rec',
+        label: 'rec.onnx (Thai CTC Recognizer)',
+        url: 'https://huggingface.co/iapp/OpenThai2.0-OCR-Text/resolve/main/rec.onnx',
+        approxBytes: 2_450_000,
+      },
+      {
+        key: 'openthaigpt-ocr-text-dict',
+        label: 'rec_dict.txt (528 Thai/EN chars)',
+        url: 'https://huggingface.co/iapp/OpenThai2.0-OCR-Text/resolve/main/rec_dict.txt',
+        approxBytes: 8_192,
+      },
+      {
+        key: 'openthaigpt-ocr-text-cfg',
+        label: 'config.json',
+        url: 'https://huggingface.co/iapp/OpenThai2.0-OCR-Text/resolve/main/config.json',
+        approxBytes: 2_048,
+      },
+    ],
+  },
   accurate: {
     id: 'accurate-typhoon-ocr2-2b-webgpu',
     mode: 'accurate',

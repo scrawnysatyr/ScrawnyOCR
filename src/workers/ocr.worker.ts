@@ -28,7 +28,9 @@ async function ensureEngine(model: ModelDefinition): Promise<IOcrEngine> {
   }
 
   const engine: IOcrEngine =
-    model.mode === 'fast' ? new FastOnnxEngine() : new WebGpuVlmEngine();
+    model.mode === 'fast' || model.mode === 'hybrid'
+      ? new FastOnnxEngine()
+      : new WebGpuVlmEngine();
 
   await engine.initialize(model, (stage, message, percent) => {
     post({

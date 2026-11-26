@@ -1,6 +1,6 @@
 export type Language = 'th' | 'en';
 
-export type ModelMode = 'fast' | 'accurate';
+export type ModelMode = 'fast' | 'hybrid' | 'accurate';
 
 export type OcrBackend = 'wasm' | 'webgpu';
 

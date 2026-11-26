@@ -1,14 +1,13 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Check,
-  Code2,
   Copy,
-  Eye,
-  FileCode,
   FileDown,
   FileText,
   Image as ImageIcon,
-  ScanText,
+  RotateCcw,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react';
 import type { Translations } from '../i18n/translations';
 import type { Language, NormalizedPage } from '../types/ocr';
@@ -35,6 +34,7 @@ function escapeHtml(text: string): string {
 
 function formatInlineMarkdown(line: string): string {
   return escapeHtml(line)
+    .replace(/&lt;u&gt;([\s\S]*?)&lt;\/u&gt;/gi, '<u>$1</u>')
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     .replace(/\*([^*]+)\*/g, '<em>$1</em>')
     .replace(/`([^`]+)`/g, '<code class="rounded bg-[#222226] px-1.5 py-0.5 text-xs">$1</code>');
@@ -77,6 +77,38 @@ function renderUnifiedPreviewHtml(source: string): string {
       if (/^-{3,}$/.test(trimmed)) {
         closeLists();
         htmlLines.push('<hr class="my-4 border-[#222226]" />');
+        continue;
+      }
+
+      const emblemMatch = trimmed.match(/^!\[emblem\]\((data:image\/[^)]+)\)$/i);
+      if (emblemMatch) {
+        closeLists();
+        htmlLines.push(
+          `<div class="my-2 flex justify-center"><img src="${emblemMatch[1]}" alt="Document Emblem" class="h-20 w-auto object-contain" /></div>`,
+        );
+        continue;
+      }
+
+      const centerMatch = trimmed.match(/^<p\s+align="center">([\s\S]*)<\/p>$/i);
+      if (centerMatch) {
+        closeLists();
+        htmlLines.push(`<p class="text-center">${formatInlineMarkdown(centerMatch[1])}</p>`);
+        continue;
+      }
+
+      const rightMatch = trimmed.match(/^<p\s+align="right">([\s\S]*)<\/p>$/i);
+      if (rightMatch) {
+        closeLists();
+        htmlLines.push(`<p class="text-right">${formatInlineMarkdown(rightMatch[1])}</p>`);
+        continue;
+      }
+
+      const sigMatch = trimmed.match(/^<p\s+align="signature">([\s\S]*)<\/p>$/i);
+      if (sigMatch) {
+        closeLists();
+        htmlLines.push(
+          `<p class="ml-[40%] text-center">${formatInlineMarkdown(sigMatch[1])}</p>`,
+        );
         continue;
       }
 
@@ -158,12 +190,25 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
   isExportingDocx,
   onChangePageMarkdown,
   onExportDocx,
-  onExportMd,
   onExportTxt,
 }) => {
-  const [panelMode, setPanelMode] = useState<'original' | 'ocr'>('original');
-  const [activeTab, setActiveTab] = useState<'rendered' | 'source'>('rendered');
+  const [panelMode, setPanelMode] = useState<'original' | 'docx' | 'txt'>('original');
   const [copied, setCopied] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const dragStartRef = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
+
+  useEffect(() => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  }, [selectedPage?.pageNumber]);
+
+  const resetView = () => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  };
+
+  const clampZoom = (val: number) => Math.min(5, Math.max(0.5, Number(val.toFixed(2))));
 
   const renderedHtml = useMemo(
     () => (pageMarkdown.trim() ? renderUnifiedPreviewHtml(pageMarkdown) : ''),
@@ -181,7 +226,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
 
   return (
     <section className="flex h-full min-h-0 flex-col rounded-2xl border border-[#222226] bg-[#18181b]/90 p-5 shadow-lg backdrop-blur-sm">
-      {/* Header & Mode Switcher */}
+      {/* Header & 3-Mode Switcher (Original / DOCX / TXT) */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#222226] pb-3.5">
         <div>
           <h2 className="text-base font-bold text-[#ffffff]">
@@ -194,17 +239,20 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
               ? lang === 'th'
                 ? 'ดูภาพต้นฉบับของหน้าที่เลือก'
                 : 'Original page preview'
-              : t.editableHint}
+              : panelMode === 'docx'
+                ? lang === 'th'
+                  ? 'ตัวอย่างหน้ากระดาษ Word (.docx)'
+                  : 'Word (.docx) A4 paper preview'
+                : t.editableHint}
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {/* Primary 2-mode toggle: Original vs OCR Result */}
           <div className="inline-flex rounded-xl border border-white/10 bg-[#27272c] p-1">
             <button
               type="button"
               onClick={() => setPanelMode('original')}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs sm:text-sm font-semibold transition-colors ${
+              className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs sm:text-sm font-semibold transition-colors cursor-pointer ${
                 panelMode === 'original'
                   ? 'bg-[#ff7300] text-[#050505]'
                   : 'text-[#d4d4d8] hover:text-[#ffffff]'
@@ -215,61 +263,82 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => setPanelMode('ocr')}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs sm:text-sm font-semibold transition-colors ${
-                panelMode === 'ocr'
+              onClick={() => setPanelMode('docx')}
+              className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs sm:text-sm font-semibold transition-colors cursor-pointer ${
+                panelMode === 'docx'
                   ? 'bg-[#ff7300] text-[#050505]'
                   : 'text-[#d4d4d8] hover:text-[#ffffff]'
               }`}
             >
-              <ScanText className="h-4 w-4" />
-              {lang === 'th' ? 'ผลลัพธ์ OCR' : 'OCR Result'}
+              <FileDown className="h-4 w-4" />
+              DOCX
+            </button>
+            <button
+              type="button"
+              onClick={() => setPanelMode('txt')}
+              className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs sm:text-sm font-semibold transition-colors cursor-pointer ${
+                panelMode === 'txt'
+                  ? 'bg-[#ff7300] text-[#050505]'
+                  : 'text-[#d4d4d8] hover:text-[#ffffff]'
+              }`}
+            >
+              <FileText className="h-4 w-4" />
+              TXT
             </button>
           </div>
 
-          {/* Sub-tabs and Copy only in OCR Result mode when content exists */}
-          {panelMode === 'ocr' && hasContent && (
-            <>
-              <div className="inline-flex rounded-lg border border-[#222226] bg-[#050505] p-0.5">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('rendered')}
-                  className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                    activeTab === 'rendered'
-                      ? 'bg-[#222226] text-[#ffffff]'
-                      : 'text-[#8a8a93] hover:text-[#ffffff]'
-                  }`}
-                >
-                  <Eye className="h-3.5 w-3.5" />
-                  {t.tabRendered}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('source')}
-                  className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                    activeTab === 'source'
-                      ? 'bg-[#222226] text-[#ffffff]'
-                      : 'text-[#8a8a93] hover:text-[#ffffff]'
-                  }`}
-                >
-                  <Code2 className="h-3.5 w-3.5" />
-                  {t.tabMarkdown}
-                </button>
-              </div>
-
+          {/* Zoom Controls in Original Mode */}
+          {panelMode === 'original' && selectedPage && (
+            <div className="inline-flex items-center gap-1 rounded-xl border border-white/10 bg-[#27272c] p-1">
               <button
                 type="button"
-                onClick={handleCopy}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-[#222226] bg-[#050505] px-2.5 py-1.5 text-xs font-medium text-[#d4d4d8] transition-colors hover:border-[#ff7300]/60 hover:text-[#ffffff]"
+                onClick={() => setZoom((z) => clampZoom(z - 0.25))}
+                title="Zoom Out"
+                className="rounded-lg p-1.5 text-[#d4d4d8] transition-colors hover:bg-[#303036] hover:text-white cursor-pointer"
               >
-                {copied ? (
-                  <Check className="h-3.5 w-3.5 text-emerald-400" />
-                ) : (
-                  <Copy className="h-3.5 w-3.5" />
-                )}
-                {copied ? t.copied : t.copyText}
+                <ZoomOut className="h-4 w-4" />
               </button>
-            </>
+              <button
+                type="button"
+                onClick={resetView}
+                title="Reset Zoom"
+                className="min-w-[46px] rounded-lg px-1.5 py-1 text-center font-mono text-xs font-semibold text-[#ffffff] transition-colors hover:bg-[#303036] cursor-pointer"
+              >
+                {Math.round(zoom * 100)}%
+              </button>
+              <button
+                type="button"
+                onClick={() => setZoom((z) => clampZoom(z + 0.25))}
+                title="Zoom In"
+                className="rounded-lg p-1.5 text-[#d4d4d8] transition-colors hover:bg-[#303036] hover:text-white cursor-pointer"
+              >
+                <ZoomIn className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={resetView}
+                title="Reset Pan & Zoom"
+                className="rounded-lg p-1.5 text-[#d4d4d8] transition-colors hover:bg-[#303036] hover:text-[#ff7300] cursor-pointer"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+
+          {/* Copy in TXT Mode */}
+          {panelMode === 'txt' && hasContent && (
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-[#27272c] px-3 py-1.5 text-xs font-medium text-[#d4d4d8] transition-colors hover:border-[#ff7300]/60 hover:text-[#ffffff] cursor-pointer"
+            >
+              {copied ? (
+                <Check className="h-3.5 w-3.5 text-emerald-400" />
+              ) : (
+                <Copy className="h-3.5 w-3.5" />
+              )}
+              {copied ? t.copied : t.copyText}
+            </button>
           )}
         </div>
       </div>
@@ -278,11 +347,47 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
       <div className="mt-4 flex min-h-[260px] flex-1 flex-col overflow-hidden">
         {panelMode === 'original' ? (
           selectedPage ? (
-            <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto rounded-xl border border-[#222226] bg-[#050505]/80 p-4">
+            <div
+              onWheel={(e) => {
+                e.preventDefault();
+                const delta = e.deltaY < 0 ? 0.15 : -0.15;
+                setZoom((z) => clampZoom(z + delta));
+              }}
+              onPointerDown={(e) => {
+                if (e.button !== 0) return;
+                e.currentTarget.setPointerCapture(e.pointerId);
+                dragStartRef.current = {
+                  x: e.clientX,
+                  y: e.clientY,
+                  panX: pan.x,
+                  panY: pan.y,
+                };
+              }}
+              onPointerMove={(e) => {
+                if (!dragStartRef.current) return;
+                const dx = e.clientX - dragStartRef.current.x;
+                const dy = e.clientY - dragStartRef.current.y;
+                setPan({
+                  x: dragStartRef.current.panX + dx,
+                  y: dragStartRef.current.panY + dy,
+                });
+              }}
+              onPointerUp={() => {
+                dragStartRef.current = null;
+              }}
+              onPointerCancel={() => {
+                dragStartRef.current = null;
+              }}
+              className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-xl border border-[#222226] bg-[#050505]/80 p-4 select-none touch-none cursor-grab active:cursor-grabbing"
+            >
               <img
                 src={selectedPage.previewUrl}
                 alt={`Page ${selectedPage.pageNumber}`}
-                className="max-h-full max-w-full rounded-lg object-contain shadow-lg"
+                draggable={false}
+                style={{
+                  transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})`,
+                }}
+                className="max-h-full max-w-full rounded-lg object-contain shadow-lg transition-transform duration-75 will-change-transform pointer-events-none"
               />
             </div>
           ) : (
@@ -296,57 +401,61 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
           )
         ) : !hasContent ? (
           <div className="min-h-0 flex-1 rounded-xl border border-[#222226] bg-[#050505]/40" />
-        ) : activeTab === 'rendered' ? (
-          <div
-            className="ocr-preview-prose font-thai-preview min-h-0 flex-1 overflow-y-auto rounded-xl border border-[#222226] bg-[#050505]/80 p-5 text-[15px]"
-            dangerouslySetInnerHTML={{ __html: renderedHtml }}
-          />
+        ) : panelMode === 'docx' ? (
+          <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-[#222226] bg-[#0c0c0f] p-4 sm:p-6">
+            <div className="font-thai-preview mx-auto min-h-[960px] w-full max-w-[794px] rounded-sm bg-white px-8 py-9 text-[15px] leading-relaxed text-[#111827] shadow-2xl sm:px-14 sm:py-12 [&_hr]:my-3 [&_hr]:border-gray-500 [&_table]:my-2 [&_table]:w-full [&_table]:border-collapse [&_table:not([data-layout])_td]:border [&_table:not([data-layout])_td]:border-gray-300 [&_table:not([data-layout])_td]:px-2.5 [&_table:not([data-layout])_td]:py-1.5 [&_table:not([data-layout])_th]:border [&_table:not([data-layout])_th]:border-gray-300 [&_table:not([data-layout])_th]:bg-gray-100 [&_table:not([data-layout])_th]:px-2.5 [&_table:not([data-layout])_th]:py-1.5 [&_table[data-layout=committee]_td:last-child]:w-[28%] [&_table[data-layout=header]_td:first-child]:text-left [&_table[data-layout=header]_td:last-child]:text-right [&_table[data-layout=header]_td:nth-child(2)]:text-center [&_table[data-layout=signature]_td]:align-top [&_table[data-layout=signature]_td]:py-2">
+              {selectedPage && selectedPage.pageNumber > 1 && (
+                <div className="mb-3 text-center text-sm text-gray-700">
+                  -{selectedPage.pageNumber}-
+                </div>
+              )}
+              <div dangerouslySetInnerHTML={{ __html: renderedHtml }} />
+            </div>
+          </div>
         ) : (
           <textarea
             value={pageMarkdown}
             onChange={(e) => onChangePageMarkdown(e.target.value)}
             spellCheck={false}
-            className="font-mono-code min-h-0 w-full flex-1 resize-none rounded-xl border border-[#222226] bg-[#050505] p-4 text-xs leading-relaxed text-[#ffffff] focus:border-[#ff7300] focus:outline-none"
+            className="font-mono-code min-h-0 w-full flex-1 resize-none rounded-xl border border-[#222226] bg-[#050505] p-4 text-xs sm:text-sm leading-relaxed text-[#ffffff] focus:border-[#ff7300] focus:outline-none"
           />
         )}
       </div>
 
-      {/* Export Bar */}
-      <div className="mt-4 flex flex-col gap-3 border-t border-[#222226] pt-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-[11px] text-[#d4d4d8]">{t.docxHint}</p>
+      {/* Mode-Specific Download Bar */}
+      {panelMode !== 'original' && (
+        <div className="mt-4 flex flex-col gap-3 border-t border-[#222226] pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-[#d4d4d8]">
+            {panelMode === 'docx' ? t.docxHint : t.editableHint}
+          </p>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            disabled={!hasAnyOcrResult || isExportingDocx}
-            onClick={onExportDocx}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-[#ff7300] px-4 py-2.5 text-xs sm:text-sm font-bold text-[#050505] shadow-[0_0_20px_rgba(255,115,0,0.25)] transition-all hover:bg-[#ff8826] disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <FileDown className="h-4 w-4" />
-            {t.exportDocx}
-          </button>
+          <div className="flex items-center gap-2">
+            {panelMode === 'docx' && (
+              <button
+                type="button"
+                disabled={!hasAnyOcrResult || isExportingDocx}
+                onClick={onExportDocx}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-[#ff7300] px-4 py-2.5 text-xs sm:text-sm font-bold text-[#050505] shadow-[0_0_20px_rgba(255,115,0,0.25)] transition-all hover:bg-[#ff8826] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+              >
+                <FileDown className="h-4 w-4" />
+                {t.exportDocx}
+              </button>
+            )}
 
-          <button
-            type="button"
-            disabled={!hasAnyOcrResult}
-            onClick={onExportMd}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-[#27272c] px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-[#ffffff] transition-colors hover:border-[#ff7300] hover:text-[#ff9440] disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <FileCode className="h-4 w-4" />
-            {t.exportMd}
-          </button>
-
-          <button
-            type="button"
-            disabled={!hasAnyOcrResult}
-            onClick={onExportTxt}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-[#27272c] px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-[#ffffff] transition-colors hover:border-[#ff7300] hover:text-[#ff9440] disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <FileText className="h-4 w-4" />
-            {t.exportTxt}
-          </button>
+            {panelMode === 'txt' && (
+              <button
+                type="button"
+                disabled={!hasAnyOcrResult}
+                onClick={onExportTxt}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-[#ff7300] px-4 py-2.5 text-xs sm:text-sm font-bold text-[#050505] shadow-[0_0_20px_rgba(255,115,0,0.25)] transition-all hover:bg-[#ff8826] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+              >
+                <FileText className="h-4 w-4" />
+                {t.exportTxt}
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </section>
   );
 };

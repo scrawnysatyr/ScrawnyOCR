@@ -2,16 +2,20 @@ import {
   AlignmentType,
   BorderStyle,
   Document,
+  Header,
   HeadingLevel,
+  ImageRun,
   LevelFormat,
   LineRuleType,
   Packer,
+  PageNumber,
   Paragraph,
   ShadingType,
   Table,
   TableCell,
   TableRow,
   TextRun,
+  UnderlineType,
   VerticalAlign,
   VerticalMergeType,
   WidthType,
@@ -47,7 +51,7 @@ function parseInlineRuns(
   baseOptions: Partial<IRunOptions> = {},
 ): TextRun[] {
   const runs: TextRun[] = [];
-  const tokenRegex = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g;
+  const tokenRegex = /(<u>[\s\S]*?<\/u>|\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/gi;
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
@@ -64,7 +68,18 @@ function parseInlineRuns(
     }
 
     const token = match[0];
-    if (token.startsWith('**') && token.endsWith('**')) {
+    if (/^<u>[\s\S]*<\/u>$/i.test(token)) {
+      const inner = token.replace(/^<u>|<\/u>$/gi, '');
+      runs.push(
+        new TextRun({
+          text: inner,
+          font: THAI_FONT_SPEC,
+          size: BODY_FONT_SIZE_HALF_PT,
+          underline: { type: UnderlineType.SINGLE },
+          ...baseOptions,
+        }),
+      );
+    } else if (token.startsWith('**') && token.endsWith('**')) {
       runs.push(
         new TextRun({
           text: token.slice(2, -2),
@@ -140,6 +155,10 @@ function htmlTableToDocxTable(htmlTable: string): Table | null {
   const tableEl = doc.querySelector('table');
   if (!tableEl) return null;
 
+  const layoutType = tableEl.getAttribute('data-layout');
+  const isBorderlessLayout =
+    layoutType === 'header' || layoutType === 'signature' || layoutType === 'committee';
+
   const trElements = Array.from(tableEl.querySelectorAll('tr'));
   if (trElements.length === 0) return null;
 
@@ -162,8 +181,15 @@ function htmlTableToDocxTable(htmlTable: string): Table | null {
       const rowSpan = Math.max(1, parseInt(cellEl.getAttribute('rowspan') || '1', 10) || 1);
       const colSpan = Math.max(1, parseInt(cellEl.getAttribute('colspan') || '1', 10) || 1);
       const isHeader =
-        cellEl.tagName === 'TH' || cellEl.closest('thead') !== null;
-      const cellText = (cellEl.textContent || '').replace(/\s+/g, ' ').trim();
+        !isBorderlessLayout && (cellEl.tagName === 'TH' || cellEl.closest('thead') !== null);
+      const rawHtml = cellEl.innerHTML.replace(/<br\s*\/?>/gi, '\n');
+      const tmp = doc.createElement('div');
+      tmp.innerHTML = rawHtml;
+      const cellText = (tmp.textContent || '')
+        .split('\n')
+        .map((l) => l.replace(/\s+/g, ' ').trim())
+        .join('\n')
+        .trim();
 
       for (let r = 0; r < rowSpan; r++) {
         const targetRow = rowIdx + r;
@@ -221,23 +247,37 @@ function htmlTableToDocxTable(htmlTable: string): Table | null {
 
       if (cellData.isHeader) rowIsHeader = true;
 
-      const cellWidthPct = Math.round(colWidthPct * cellData.colSpan * 100) / 100;
+      const cellWidthPct =
+        layoutType === 'committee' && maxCols === 2
+          ? c === 0
+            ? 72
+            : 28
+          : Math.round(colWidthPct * cellData.colSpan * 100) / 100;
+
+      const cellLines = cellData.text ? cellData.text.split('\n') : [''];
+      const cellAlignment =
+        layoutType === 'header'
+          ? c === 0
+            ? AlignmentType.LEFT
+            : c === maxCols - 1
+              ? AlignmentType.RIGHT
+              : AlignmentType.CENTER
+          : cellData.isHeader
+            ? AlignmentType.CENTER
+            : AlignmentType.LEFT;
 
       docxCells.push(
         new TableCell({
           columnSpan: cellData.colSpan > 1 ? cellData.colSpan : undefined,
           verticalMerge: cellData.verticalMerge,
-          verticalAlign: VerticalAlign.CENTER,
+          verticalAlign: layoutType === 'signature' ? VerticalAlign.TOP : VerticalAlign.CENTER,
           width: {
             size: cellWidthPct,
             type: WidthType.PERCENTAGE,
           },
-          margins: {
-            top: 100,
-            bottom: 100,
-            left: 140,
-            right: 140,
-          },
+          margins: isBorderlessLayout
+            ? { top: 80, bottom: 120, left: 100, right: 100 }
+            : { top: 100, bottom: 100, left: 140, right: 140 },
           shading: cellData.isHeader
             ? {
                 type: ShadingType.CLEAR,
@@ -245,21 +285,22 @@ function htmlTableToDocxTable(htmlTable: string): Table | null {
                 fill: 'F3F4F6',
               }
             : undefined,
-          children: [
-            new Paragraph({
-              spacing: {
-                line: 288,
-                lineRule: LineRuleType.AUTO,
-                before: 20,
-                after: 20,
-              },
-              alignment: cellData.isHeader ? AlignmentType.CENTER : AlignmentType.LEFT,
-              children: parseInlineRuns(cellData.text, {
-                size: TABLE_FONT_SIZE_HALF_PT,
-                bold: cellData.isHeader,
+          children: cellLines.map(
+            (lineText) =>
+              new Paragraph({
+                spacing: {
+                  line: 288,
+                  lineRule: LineRuleType.AUTO,
+                  before: layoutType === 'signature' && lineText.includes('____') ? 320 : 20,
+                  after: 20,
+                },
+                alignment: cellAlignment,
+                children: parseInlineRuns(lineText, {
+                  size: TABLE_FONT_SIZE_HALF_PT,
+                  bold: cellData.isHeader,
+                }),
               }),
-            }),
-          ],
+          ),
         }),
       );
     }
@@ -280,14 +321,23 @@ function htmlTableToDocxTable(htmlTable: string): Table | null {
       size: 100,
       type: WidthType.PERCENTAGE,
     },
-    borders: {
-      top: { style: BorderStyle.SINGLE, size: 6, color: 'D1D5DB' },
-      bottom: { style: BorderStyle.SINGLE, size: 6, color: 'D1D5DB' },
-      left: { style: BorderStyle.SINGLE, size: 6, color: 'D1D5DB' },
-      right: { style: BorderStyle.SINGLE, size: 6, color: 'D1D5DB' },
-      insideHorizontal: { style: BorderStyle.SINGLE, size: 4, color: 'E5E7EB' },
-      insideVertical: { style: BorderStyle.SINGLE, size: 4, color: 'E5E7EB' },
-    },
+    borders: isBorderlessLayout
+      ? {
+          top: { style: BorderStyle.NONE, size: 0, color: 'auto' },
+          bottom: { style: BorderStyle.NONE, size: 0, color: 'auto' },
+          left: { style: BorderStyle.NONE, size: 0, color: 'auto' },
+          right: { style: BorderStyle.NONE, size: 0, color: 'auto' },
+          insideHorizontal: { style: BorderStyle.NONE, size: 0, color: 'auto' },
+          insideVertical: { style: BorderStyle.NONE, size: 0, color: 'auto' },
+        }
+      : {
+          top: { style: BorderStyle.SINGLE, size: 6, color: 'D1D5DB' },
+          bottom: { style: BorderStyle.SINGLE, size: 6, color: 'D1D5DB' },
+          left: { style: BorderStyle.SINGLE, size: 6, color: 'D1D5DB' },
+          right: { style: BorderStyle.SINGLE, size: 6, color: 'D1D5DB' },
+          insideHorizontal: { style: BorderStyle.SINGLE, size: 4, color: 'E5E7EB' },
+          insideVertical: { style: BorderStyle.SINGLE, size: 4, color: 'E5E7EB' },
+        },
     rows: tableRows,
   });
 }
@@ -345,12 +395,88 @@ function markdownBlockToParagraphs(markdown: string): Paragraph[] {
       continue;
     }
 
-    // Page separator markers (---) -> subtle spacing
+    // Horizontal divider line (---) -> native Word bottom border divider
     if (/^-{3,}$/.test(trimmed)) {
       paragraphs.push(
         new Paragraph({
-          spacing: { before: 120, after: 120 },
+          spacing: { before: 80, after: 120 },
+          border: {
+            bottom: {
+              style: BorderStyle.SINGLE,
+              size: 8,
+              color: '6B7280',
+              space: 4,
+            },
+          },
           children: [],
+        }),
+      );
+      continue;
+    }
+
+    // Embedded emblem / Garuda image (![emblem](data:image/png;base64,...))
+    const emblemMatch = trimmed.match(/^!\[emblem\]\((data:image\/[^;]+;base64,([^)]+))\)$/i);
+    if (emblemMatch) {
+      try {
+        const binStr = atob(emblemMatch[2]);
+        const bytes = new Uint8Array(binStr.length);
+        for (let b = 0; b < binStr.length; b++) {
+          bytes[b] = binStr.charCodeAt(b);
+        }
+        paragraphs.push(
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 0, after: 160 },
+            children: [
+              new ImageRun({
+                type: 'png',
+                data: bytes,
+                transformation: { width: 105, height: 105 },
+              }),
+            ],
+          }),
+        );
+      } catch {
+        // Ignore malformed image data URL
+      }
+      continue;
+    }
+
+    // Centered paragraph (<p align="center">...</p>) -> centered Word Paragraph
+    const centerMatch = trimmed.match(/^<p\s+align="center">([\s\S]*)<\/p>$/i);
+    if (centerMatch) {
+      paragraphs.push(
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: THAI_LINE_SPACING,
+          children: parseInlineRuns(centerMatch[1]),
+        }),
+      );
+      continue;
+    }
+
+    // Right-aligned paragraph (<p align="right">...</p>) -> right-aligned Word Paragraph
+    const rightMatch = trimmed.match(/^<p\s+align="right">([\s\S]*)<\/p>$/i);
+    if (rightMatch) {
+      paragraphs.push(
+        new Paragraph({
+          alignment: AlignmentType.RIGHT,
+          spacing: THAI_LINE_SPACING,
+          children: parseInlineRuns(rightMatch[1]),
+        }),
+      );
+      continue;
+    }
+
+    // Signature / Order date block (<p align="signature">...</p>) -> indented centered block
+    const sigMatch = trimmed.match(/^<p\s+align="signature">([\s\S]*)<\/p>$/i);
+    if (sigMatch) {
+      paragraphs.push(
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          indent: { left: 3600 },
+          spacing: { line: 312, lineRule: LineRuleType.AUTO, after: 40 },
+          children: parseInlineRuns(sigMatch[1]),
         }),
       );
       continue;
@@ -429,7 +555,9 @@ function markdownBlockToParagraphs(markdown: string): Paragraph[] {
     }
 
     // Standard flowing paragraph (no floating text boxes!)
+    const useThaiDistribute = trimmed.length > 60;
     const paraOptions: IParagraphOptions = {
+      alignment: useThaiDistribute ? AlignmentType.THAI_DISTRIBUTE : AlignmentType.LEFT,
       spacing: THAI_LINE_SPACING,
       children: parseInlineRuns(trimmed),
     };
@@ -511,6 +639,7 @@ export async function generateDocxBlob(unifiedMarkdown: string): Promise<Blob> {
     sections: [
       {
         properties: {
+          titlePage: true,
           page: {
             margin: {
               top: 1440, // 1 inch
@@ -519,6 +648,32 @@ export async function generateDocxBlob(unifiedMarkdown: string): Promise<Blob> {
               right: 1440,
             },
           },
+        },
+        headers: {
+          default: new Header({
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                children: [
+                  new TextRun({
+                    text: '-',
+                    font: THAI_FONT_SPEC,
+                    size: BODY_FONT_SIZE_HALF_PT,
+                  }),
+                  new TextRun({
+                    children: [PageNumber.CURRENT],
+                    font: THAI_FONT_SPEC,
+                    size: BODY_FONT_SIZE_HALF_PT,
+                  }),
+                  new TextRun({
+                    text: '-',
+                    font: THAI_FONT_SPEC,
+                    size: BODY_FONT_SIZE_HALF_PT,
+                  }),
+                ],
+              }),
+            ],
+          }),
         },
         children,
       },

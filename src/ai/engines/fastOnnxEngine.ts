@@ -1,5 +1,5 @@
 import * as ort from 'onnxruntime-web';
-import type { ModelDefinition, OcrPageResult } from '../../types/ocr';
+import type { ModelDefinition, ModelMode, OcrPageResult } from '../../types/ocr';
 import {
   downloadAndCacheModel,
   getCachedArtifactBuffer,
@@ -11,6 +11,11 @@ interface TextBox {
   y0: number;
   x1: number;
   y1: number;
+}
+
+interface RecognizedBox {
+  box: TextBox;
+  text: string;
 }
 
 const DET_MEAN = [0.485, 0.456, 0.406] as const;
@@ -36,13 +41,26 @@ export class FastOnnxEngine implements IOcrEngine {
   private detSession: ort.InferenceSession | null = null;
   private recSession: ort.InferenceSession | null = null;
   private charDict: string[] = [];
+  private currentMode: ModelMode = 'fast';
+  private activeBackend: 'wasm' | 'webgpu' = 'wasm';
 
   async initialize(
     model: ModelDefinition,
     onProgress: EngineProgressCallback,
   ): Promise<void> {
-    if (this.detSession && this.recSession) {
+    this.currentMode = model.mode;
+    const wantWebGpu = model.backend === 'webgpu' && 'gpu' in navigator;
+
+    if (
+      this.detSession &&
+      this.recSession &&
+      this.activeBackend === (wantWebGpu ? 'webgpu' : 'wasm')
+    ) {
       return;
+    }
+
+    if (this.detSession || this.recSession) {
+      await this.dispose();
     }
 
     // Configure WASM runtime inside Web Worker (load .wasm from CDN to stay under 25 MiB host limit)
@@ -80,19 +98,40 @@ export class FastOnnxEngine implements IOcrEngine {
       this.charDict = ['', ...chars, ' '];
     }
 
-    onProgress('initializing', 'Initializing PP-OCRv6-tiny Detector (WASM)...', 80);
-    this.detSession = await ort.InferenceSession.create(new Uint8Array(detBuf), {
-      executionProviders: ['wasm'],
-      graphOptimizationLevel: 'all',
-    });
+    const providers: Array<'webgpu' | 'wasm'> = wantWebGpu ? ['webgpu', 'wasm'] : ['wasm'];
+    const backendLabel = wantWebGpu ? 'WebGPU' : 'WASM';
 
-    onProgress('initializing', 'Initializing Thai CTC Recognizer (WASM)...', 92);
-    this.recSession = await ort.InferenceSession.create(new Uint8Array(recBuf), {
-      executionProviders: ['wasm'],
-      graphOptimizationLevel: 'all',
-    });
+    const createWithFallback = async (
+      buf: ArrayBuffer,
+    ): Promise<{ session: ort.InferenceSession; usedWebGpu: boolean }> => {
+      if (wantWebGpu) {
+        try {
+          const session = await ort.InferenceSession.create(new Uint8Array(buf), {
+            executionProviders: providers,
+            graphOptimizationLevel: 'all',
+          });
+          return { session, usedWebGpu: true };
+        } catch {
+          // Fallback to WASM if WebGPU EP fails on this operator/device
+        }
+      }
+      const session = await ort.InferenceSession.create(new Uint8Array(buf), {
+        executionProviders: ['wasm'],
+        graphOptimizationLevel: 'all',
+      });
+      return { session, usedWebGpu: false };
+    };
 
-    onProgress('initializing', 'OpenThai2.0-OCR-Text Engine ready.', 100);
+    onProgress('initializing', `Initializing PP-OCRv6-tiny Detector (${backendLabel})...`, 80);
+    const detRes = await createWithFallback(detBuf);
+    this.detSession = detRes.session;
+
+    onProgress('initializing', `Initializing Thai CTC Recognizer (${backendLabel})...`, 92);
+    const recRes = await createWithFallback(recBuf);
+    this.recSession = recRes.session;
+    this.activeBackend = detRes.usedWebGpu || recRes.usedWebGpu ? 'webgpu' : 'wasm';
+
+    onProgress('initializing', `OpenThai2.0-OCR-Text Engine ready (${this.activeBackend.toUpperCase()}).`, 100);
   }
 
   async recognizePage(
@@ -123,11 +162,12 @@ export class FastOnnxEngine implements IOcrEngine {
     const orderedRows = this.sortBoxesIntoRows(boxes);
 
     // 3. Recognize each line crop with rec.onnx
+    const rowBoxes: RecognizedBox[][] = [];
     const rowTexts: string[] = [];
     const recInputName = this.recSession.inputNames[0] ?? 'x';
 
     for (const row of orderedRows) {
-      const parts: string[] = [];
+      const recognizedInRow: RecognizedBox[] = [];
       for (const box of row) {
         const cropW = Math.max(1, Math.round(box.x1 - box.x0));
         const cropH = Math.max(1, Math.round(box.y1 - box.y0));
@@ -143,24 +183,30 @@ export class FastOnnxEngine implements IOcrEngine {
 
         const { text, confidence } = this.ctcGreedyDecode(recOutputs);
         if (text.length >= REC_MIN_CHARS && confidence >= REC_DROP_BELOW) {
-          parts.push(text.normalize('NFC'));
+          recognizedInRow.push({ box, text: text.normalize('NFC') });
         }
       }
-      if (parts.length > 0) {
-        rowTexts.push(parts.join('  '));
+      if (recognizedInRow.length > 0) {
+        rowBoxes.push(recognizedInRow);
+        rowTexts.push(recognizedInRow.map((r) => r.text).join('  '));
       }
     }
 
     const markdown =
-      rowTexts.length > 0
-        ? rowTexts.join('\n')
-        : `<!-- Page ${pageNumber}: no readable text -->`;
+      rowTexts.length === 0
+        ? `<!-- Page ${pageNumber}: no readable text -->`
+        : this.currentMode === 'hybrid'
+          ? await this.buildHybridStructuredMarkdown(rowBoxes, rgba, width, height)
+          : rowTexts.join('\n');
 
     return {
       pageNumber,
       markdown,
       durationMs: Math.round(performance.now() - start),
-      engineUsed: this.engineId,
+      engineUsed:
+        this.currentMode === 'hybrid'
+          ? `hybrid-vlm-text-ocr-${this.activeBackend}`
+          : this.engineId,
     };
   }
 
@@ -500,6 +546,316 @@ export class FastOnnxEngine implements IOcrEngine {
       text: chars.join('').trim(),
       confidence: confCount > 0 ? confSum / confCount : 0,
     };
+  }
+
+  private escapeHtmlCell(text: string): string {
+    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  /**
+   * Checks if there is a horizontal divider rule between two y coordinates in the page RGBA.
+   */
+  private detectHorizontalRuleBetween(
+    rgba: Uint8ClampedArray,
+    width: number,
+    height: number,
+    yStart: number,
+    yEnd: number,
+  ): boolean {
+    const top = Math.max(0, Math.floor(yStart));
+    const bottom = Math.min(height - 1, Math.ceil(yEnd));
+    if (bottom - top < 2) return false;
+
+    const x0 = Math.floor(width * 0.12);
+    const x1 = Math.ceil(width * 0.88);
+    const span = x1 - x0;
+    if (span <= 0) return false;
+
+    for (let y = top; y <= bottom; y++) {
+      let darkCount = 0;
+      for (let x = x0; x < x1; x += 2) {
+        const idx = (y * width + x) * 4;
+        const gray = 0.299 * rgba[idx] + 0.587 * rgba[idx + 1] + 0.114 * rgba[idx + 2];
+        if (gray < 175) darkCount++;
+      }
+      if (darkCount / (span / 2) >= 0.55) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Detects a centered top emblem/figure (e.g. Thai Garuda / ตราครุฑ) above firstTextY
+   * and crops it into a PNG data URL using OffscreenCanvas when available.
+   */
+  private async extractTopEmblemDataUrl(
+    rgba: Uint8ClampedArray,
+    width: number,
+    height: number,
+    firstTextY: number,
+  ): Promise<string | null> {
+    if (typeof OffscreenCanvas === 'undefined') return null;
+    const maxY = Math.min(Math.floor(firstTextY) - 6, Math.floor(height * 0.28));
+    if (maxY < 24) return null;
+
+    const xMinBound = Math.floor(width * 0.3);
+    const xMaxBound = Math.ceil(width * 0.7);
+    let minX = width;
+    let maxX = 0;
+    let minY = maxY;
+    let maxFoundY = 0;
+    let darkPixels = 0;
+
+    for (let y = Math.floor(height * 0.02); y < maxY; y += 2) {
+      for (let x = xMinBound; x < xMaxBound; x += 2) {
+        const idx = (y * width + x) * 4;
+        const gray = 0.299 * rgba[idx] + 0.587 * rgba[idx + 1] + 0.114 * rgba[idx + 2];
+        if (gray < 185) {
+          darkPixels++;
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxFoundY) maxFoundY = y;
+        }
+      }
+    }
+
+    const boxW = maxX - minX;
+    const boxH = maxFoundY - minY;
+    if (darkPixels < 120 || boxW < 28 || boxH < 28 || boxW > width * 0.42) {
+      return null;
+    }
+
+    const pad = 6;
+    const cx0 = Math.max(0, minX - pad);
+    const cy0 = Math.max(0, minY - pad);
+    const cw = Math.min(width - cx0, boxW + pad * 2);
+    const ch = Math.min(height - cy0, boxH + pad * 2);
+
+    const canvas = new OffscreenCanvas(cw, ch);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    const imgData = ctx.createImageData(cw, ch);
+    for (let row = 0; row < ch; row++) {
+      const srcOffset = ((cy0 + row) * width + cx0) * 4;
+      const dstOffset = row * cw * 4;
+      imgData.data.set(rgba.subarray(srcOffset, srcOffset + cw * 4), dstOffset);
+    }
+    ctx.putImageData(imgData, 0, 0);
+
+    const blob = await canvas.convertToBlob({ type: 'image/png' });
+    const buf = await blob.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    let binary = '';
+    for (let k = 0; k < bytes.length; k++) {
+      binary += String.fromCharCode(bytes[k]);
+    }
+    return `data:image/png;base64,${btoa(binary)}`;
+  }
+
+  /**
+   * Reconstructs Garuda/top emblem, headers, centered titles/page numbers,
+   * horizontal dividers, committee lists, signature blocks, and data tables.
+   */
+  private async buildHybridStructuredMarkdown(
+    rows: RecognizedBox[][],
+    rgba: Uint8ClampedArray,
+    width: number,
+    height: number,
+  ): Promise<string> {
+    const out: string[] = [];
+    if (rows.length > 0) {
+      const firstTextY = Math.min(...rows[0].map((r) => r.box.y0));
+      const emblemUrl = await this.extractTopEmblemDataUrl(rgba, width, height, firstTextY);
+      if (emblemUrl) {
+        out.push(`![emblem](${emblemUrl})`);
+      }
+    }
+
+    let i = 0;
+    while (i < rows.length) {
+      const row = rows[i];
+      const rowTop = Math.min(...row.map((r) => r.box.y0));
+
+      if (i > 0) {
+        const prevBottom = Math.max(...rows[i - 1].map((r) => r.box.y1));
+        if (
+          rowTop - prevBottom >= 4 &&
+          this.detectHorizontalRuleBetween(rgba, width, height, prevBottom + 1, rowTop - 1)
+        ) {
+          out.push('---');
+        }
+      }
+
+      // Top-of-page 2-3 column header (e.g. เล่ม ... | ราชกิจจานุเบกษา | วันที่ ...)
+      if (rowTop < height * 0.18 && row.length >= 2 && row.length <= 3) {
+        const leftMost = row[0].box.x0;
+        const rightMost = row[row.length - 1].box.x1;
+        if (leftMost < width * 0.35 && rightMost > width * 0.65) {
+          const left = this.escapeHtmlCell(row[0].text);
+          const mid = row.length === 3 ? this.escapeHtmlCell(row[1].text) : '';
+          const right = this.escapeHtmlCell(row[row.length - 1].text);
+          out.push(
+            `<table data-layout="header"><tbody><tr><td>${left}</td><td>${mid}</td><td>${right}</td></tr></tbody></table>`,
+          );
+          i++;
+          continue;
+        }
+      }
+
+      // Multi-column rows: committee list, 2-col signature block, or data table
+      if (row.length >= 2) {
+        let j = i;
+        while (j + 1 < rows.length && rows[j + 1].length >= 2) {
+          j++;
+        }
+
+        const blockRows = rows.slice(i, j + 1);
+        const maxCols = Math.max(...blockRows.map((r) => r.length));
+        const isCommitteeBlock =
+          maxCols === 2 &&
+          blockRows.some((r) =>
+            /^[๑-๙0-9]+\./.test(r[0].text.trim()) ||
+            /(ประธาน|รองประธาน|กรรมการ|เลขานุการ)/.test(r[r.length - 1].text),
+          );
+
+        if (isCommitteeBlock) {
+          const trHtml = blockRows
+            .map(
+              (br) =>
+                `<tr><td>${this.escapeHtmlCell(br[0]?.text ?? '')}</td><td>${this.escapeHtmlCell(br.slice(1).map((x) => x.text).join(' '))}</td></tr>`,
+            )
+            .join('');
+          out.push(`<table data-layout="committee"><tbody>${trHtml}</tbody></table>`);
+          i = j + 1;
+          continue;
+        }
+
+        const hasSigKeywords = blockRows.some((r) =>
+          r.some((c) => /date|signature|ลงชื่อ|ตำแหน่ง|director|minister|president|governor/i.test(c.text)),
+        );
+
+        if (maxCols === 2 && (hasSigKeywords || rowTop > height * 0.45)) {
+          const leftLines: string[] = [];
+          const rightLines: string[] = [];
+          for (const br of blockRows) {
+            for (const cell of br) {
+              const cx = (cell.box.x0 + cell.box.x1) / 2;
+              if (cx < width * 0.5) leftLines.push(this.escapeHtmlCell(cell.text));
+              else rightLines.push(this.escapeHtmlCell(cell.text));
+            }
+          }
+          if (leftLines.length > 0 && rightLines.length > 0) {
+            out.push(
+              `<table data-layout="signature"><tbody><tr><td>${leftLines.join('<br />')}</td><td>${rightLines.join('<br />')}</td></tr></tbody></table>`,
+            );
+            i = j + 1;
+            continue;
+          }
+        }
+
+        if (blockRows.length >= 2 && maxCols >= 2) {
+          // Align cells into detected X column bands
+          const allX0 = blockRows.flatMap((r) => r.map((c) => c.box.x0)).sort((a, b) => a - b);
+          const colStarts: number[] = [];
+          for (const x of allX0) {
+            if (colStarts.length === 0 || x - colStarts[colStarts.length - 1] > width * 0.08) {
+              colStarts.push(x);
+            }
+          }
+          const numCols = Math.max(maxCols, colStarts.length);
+          const trHtml = blockRows
+            .map((br, idx) => {
+              const tag = idx === 0 ? 'th' : 'td';
+              const rowArr = Array<string>(numCols).fill('');
+              for (const cell of br) {
+                let bestCol = 0;
+                let bestDist = Infinity;
+                for (let c = 0; c < colStarts.length; c++) {
+                  const d = Math.abs(cell.box.x0 - colStarts[c]);
+                  if (d < bestDist) {
+                    bestDist = d;
+                    bestCol = c;
+                  }
+                }
+                rowArr[bestCol] = rowArr[bestCol]
+                  ? `${rowArr[bestCol]} ${cell.text}`
+                  : cell.text;
+              }
+              return `<tr>${rowArr.map((txt) => `<${tag}>${this.escapeHtmlCell(txt)}</${tag}>`).join('')}</tr>`;
+            })
+            .join('');
+          out.push(`<table><tbody>${trHtml}</tbody></table>`);
+          i = j + 1;
+          continue;
+        }
+      }
+
+      // Single-box line: centered title / page number, right-aligned catchword, or signature line
+      if (row.length === 1) {
+        const box = row[0].box;
+        const txt = row[0].text.trim();
+        const boxCenter = (box.x0 + box.x1) / 2;
+        const boxWidth = box.x1 - box.x0;
+
+        // Right-aligned catchword at bottom of page (e.g. "คณะกรรมการ...")
+        if (rowTop > height * 0.8 && box.x0 > width * 0.62) {
+          out.push(`<p align="right">${txt}</p>`);
+          i++;
+          continue;
+        }
+
+        // Indented Thai official signature / order date block in lower half
+        if (
+          rowTop > height * 0.45 &&
+          box.x0 > width * 0.3 &&
+          (/^(สั่ง\s+ณ\s+วันที่|\(.*\)|คณบดี|อธิการบดี|รัฐมนตรี|ปลัด|ผู้อำนวยการ)/.test(txt) ||
+            boxCenter > width * 0.56)
+        ) {
+          out.push(`<p align="signature">${txt}</p>`);
+          i++;
+          continue;
+        }
+
+        const isCentered =
+          Math.abs(boxCenter - width / 2) < width * 0.14 && boxWidth < width * 0.78;
+        if (isCentered) {
+          const isPageNum = /^(หน้า\s*[\d๐-๙]+|-\s*[\d๐-๙]+\s*-|page\s*\d+)$/i.test(txt);
+          out.push(
+            isPageNum ? `<p align="center">${txt}</p>` : `<p align="center">**${txt}**</p>`,
+          );
+          i++;
+          continue;
+        }
+      }
+
+      // Standard prose line (bold+underline "หน้าที่" prefix if present)
+      let lineText = row.map((r) => r.text).join('  ');
+      lineText = lineText.replace(/^หน้าที่\s+/, '**<u>หน้าที่</u>** ');
+      out.push(lineText);
+      i++;
+    }
+
+    // Check bottom rule after last row
+    if (rows.length > 0) {
+      const lastBottom = Math.max(...rows[rows.length - 1].map((r) => r.box.y1));
+      if (
+        lastBottom < height - 6 &&
+        this.detectHorizontalRuleBetween(
+          rgba,
+          width,
+          height,
+          lastBottom + 1,
+          Math.min(height - 1, lastBottom + 24),
+        )
+      ) {
+        out.push('---');
+      }
+    }
+
+    return out.join('\n\n');
   }
 
   async dispose(): Promise<void> {
