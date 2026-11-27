@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Megaphone, Play, ShieldCheck } from 'lucide-react';
+import { Megaphone, Play } from 'lucide-react';
 import {
   checkModelResourceGuard,
   checkWebGpuSupport,
@@ -350,29 +350,13 @@ export function App() {
       <div className="relative z-10 mx-auto flex min-h-screen w-full flex-col gap-3 px-3 py-3 sm:px-5 lg:h-full">
         {/* Topbar */}
         <header className="relative z-20 flex shrink-0 flex-wrap items-center justify-between gap-3 py-1">
-          <div className="flex items-center gap-3">
-            <a href="https://scrawny.site" className="flex items-center gap-2 group">
-              <span className="font-black text-2xl leading-none tracking-tight text-[#ff7300] shrink-0">
-                O<span className="text-white">.</span>
-              </span>
-              <span className="text-base sm:text-lg font-extrabold tracking-tight text-[#ffffff] leading-none">
-                <span className="text-[#ff7300]">ocr</span>.scrawny<span className="text-[#ff7300]">.site</span>
-              </span>
-            </a>
-            <span className="hidden items-center gap-1 rounded-[8px] border border-[#ff7300]/30 bg-[#ff7300]/10 px-2.5 py-0.5 text-[11px] font-medium text-[#ff9440] sm:inline-flex">
-              <ShieldCheck className="h-3 w-3" />
-              {t.clientSideBadge}
+          <a href="https://scrawny.site" className="flex items-center group">
+            <span className="text-base sm:text-lg font-extrabold tracking-tight text-[#ffffff] leading-none">
+              <span className="text-[#ff7300]">ocr</span>.scrawny<span className="text-[#ff7300]">.site</span>
             </span>
-          </div>
+          </a>
 
           <div className="flex items-center flex-wrap gap-2">
-            <a
-              href="https://scrawny.site"
-              className="inline-flex items-center gap-1.5 rounded-[10px] border border-white/10 bg-[#27272c] px-3 py-1.5 text-xs font-medium text-[#d4d4d8] transition-colors hover:border-[#ff7300] hover:bg-[#303036] hover:text-white"
-            >
-              <span>&larr; Hub</span>
-            </a>
-
             <a
               href="https://www.buymeacoffee.com/scrawnysatyr"
               target="_blank"
