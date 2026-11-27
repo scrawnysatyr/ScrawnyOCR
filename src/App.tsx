@@ -351,11 +351,11 @@ export function App() {
         {/* Topbar */}
         <header className="relative z-20 flex shrink-0 flex-wrap items-center justify-between gap-3 py-1">
           <div className="flex items-center gap-3">
-            <a href="https://scrawny.site" className="flex items-center gap-2.5 group">
-              <div className="grid h-10 w-10 place-items-center rounded-[11px] border border-[#222226] bg-[#18181b] text-[#ff7300] font-extrabold text-lg">
-                S
-              </div>
-              <span className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#ffffff] leading-none">
+            <a href="https://scrawny.site" className="flex items-center gap-2 group">
+              <span className="font-black text-2xl leading-none tracking-tight text-[#ff7300] shrink-0">
+                O<span className="text-white">.</span>
+              </span>
+              <span className="text-base sm:text-lg font-extrabold tracking-tight text-[#ffffff] leading-none">
                 <span className="text-[#ff7300]">ocr</span>.scrawny<span className="text-[#ff7300]">.site</span>
               </span>
             </a>
@@ -380,7 +380,7 @@ export function App() {
               className="hidden sm:inline-flex items-center transition-transform hover:scale-[1.03]"
               title="Buy Me Some Oranges"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 56" className="h-9 w-auto">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 56" className="h-8 w-auto">
                 <rect x="2" y="2" width="256" height="52" rx="12" fill="#FFDD00" />
                 <g transform="translate(15, 9) scale(0.58)" fill="none">
                   <path d="M33 17C38 10 47 10 50 15C45 20 37 20 33 17Z" fill="#4CAF50" stroke="#000000" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
