@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Globe, Megaphone, Play, ScanText, ShieldCheck } from 'lucide-react';
+import { Megaphone, Play, ShieldCheck } from 'lucide-react';
 import {
   checkModelResourceGuard,
   checkWebGpuSupport,
@@ -16,9 +16,10 @@ import {
   downloadAsText,
 } from './exporters/exportFormats';
 import { TRANSLATIONS } from './i18n/translations';
+import { useTranslatedPack } from './utils/autoTranslate';
+import { LanguageSelector } from './components/LanguageSelector';
 import type {
   CachedModelInfo,
-  Language,
   ModelDefinition,
   ModelMode,
   NormalizedDocument,
@@ -36,8 +37,37 @@ import {
 import { normalizeInputFile } from './utils/pdfToImages';
 
 export function App() {
-  const [lang, setLang] = useState<Language>('th');
-  const t = TRANSLATIONS[lang];
+  const [lang, setLang] = useState<string>(() => {
+    try {
+      return localStorage.getItem('scrawny-ocr-lang') || 'th';
+    } catch {
+      return 'th';
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem('scrawny-ocr-lang', lang);
+    } catch {
+      // Ignore
+    }
+    document.documentElement.lang = lang;
+  }, [lang]);
+
+  const { t: rawT, translateTemplate } = useTranslatedPack(lang, TRANSLATIONS, 'scrawny_ocr', {
+    pagesCount: '{{n}} pages',
+    progressInferring: 'Running OCR page {{cur}}/{{total}}...',
+    pageLabel: 'Page {{n}}',
+  });
+  const t =
+    lang === 'en' || lang === 'th'
+      ? rawT
+      : {
+          ...rawT,
+          pagesCount: (n: number) => translateTemplate('{{n}} pages', { n }),
+          progressInferring: (cur: number, total: number) =>
+            translateTemplate('Running OCR page {{cur}}/{{total}}...', { cur, total }),
+          pageLabel: (n: number) => translateTemplate('Page {{n}}', { n }),
+        };
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [normalizedDoc, setNormalizedDoc] = useState<NormalizedDocument | null>(null);
@@ -319,37 +349,70 @@ export function App() {
 
       <div className="relative z-10 mx-auto flex min-h-screen w-full flex-col gap-3 px-3 py-3 sm:px-5 lg:h-full">
         {/* Topbar */}
-        <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 py-1">
+        <header className="relative z-20 flex shrink-0 flex-wrap items-center justify-between gap-3 py-1">
           <div className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-xl border border-[#222226] bg-[#18181b] text-[#ff7300] shadow-md">
-              <ScanText className="h-5 w-5" />
-            </div>
-            <div className="flex items-center gap-2.5">
+            <a href="https://scrawny.site" className="flex items-center gap-2.5 group">
+              <div className="grid h-10 w-10 place-items-center rounded-[11px] border border-[#222226] bg-[#18181b] text-[#ff7300] font-extrabold text-lg">
+                S
+              </div>
               <span className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#ffffff] leading-none">
                 <span className="text-[#ff7300]">ocr</span>.scrawny<span className="text-[#ff7300]">.site</span>
               </span>
-              <span className="hidden items-center gap-1 rounded-full border border-[#ff7300]/30 bg-[#ff7300]/10 px-2.5 py-0.5 text-[11px] font-medium text-[#ff9440] sm:inline-flex">
-                <ShieldCheck className="h-3 w-3" />
-                {t.clientSideBadge}
-              </span>
-            </div>
+            </a>
+            <span className="hidden items-center gap-1 rounded-[8px] border border-[#ff7300]/30 bg-[#ff7300]/10 px-2.5 py-0.5 text-[11px] font-medium text-[#ff9440] sm:inline-flex">
+              <ShieldCheck className="h-3 w-3" />
+              {t.clientSideBadge}
+            </span>
           </div>
 
-          {/* Language Switcher TH / EN */}
-          <button
-            type="button"
-            onClick={() => setLang((prev) => (prev === 'th' ? 'en' : 'th'))}
-            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-[#27272c] px-3.5 py-2 text-sm font-semibold text-[#ffffff] transition-colors hover:border-[#ff7300] hover:bg-[#303036]"
-          >
-            <Globe className="h-3.5 w-3.5 text-[#ff7300]" />
-            <span className={lang === 'th' ? 'text-[#ff7300]' : 'text-[#8a8a93]'}>
-              TH
-            </span>
-            <span className="text-[#222226]">/</span>
-            <span className={lang === 'en' ? 'text-[#ff7300]' : 'text-[#8a8a93]'}>
-              EN
-            </span>
-          </button>
+          <div className="flex items-center flex-wrap gap-2">
+            <a
+              href="https://scrawny.site"
+              className="inline-flex items-center gap-1.5 rounded-[10px] border border-white/10 bg-[#27272c] px-3 py-1.5 text-xs font-medium text-[#d4d4d8] transition-colors hover:border-[#ff7300] hover:bg-[#303036] hover:text-white"
+            >
+              <span>&larr; Hub</span>
+            </a>
+
+            <a
+              href="https://www.buymeacoffee.com/scrawnysatyr"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden sm:inline-flex items-center transition-transform hover:scale-[1.03]"
+              title="Buy Me Some Oranges"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 56" className="h-9 w-auto">
+                <rect x="2" y="2" width="256" height="52" rx="12" fill="#FFDD00" />
+                <g transform="translate(15, 9) scale(0.58)" fill="none">
+                  <path d="M33 17C38 10 47 10 50 15C45 20 37 20 33 17Z" fill="#4CAF50" stroke="#000000" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M32 18C32 13 33.5 9 36 6" stroke="#000000" strokeWidth="3.5" strokeLinecap="round" />
+                  <path d="M32 18C18.5 18 10 27 10 39.5C10 52 19.5 58 32 58C44.5 58 54 52 54 39.5C54 27 45.5 18 32 18Z" fill="#FF9800" stroke="#000000" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M27 21C29.5 22.5 34.5 22.5 37 21" stroke="#000000" strokeWidth="3" strokeLinecap="round" />
+                  <path d="M17.5 35C18.5 29 22.5 25.5 27.5 24.5" stroke="#000000" strokeWidth="3" strokeLinecap="round" />
+                  <circle cx="44" cy="43" r="1.8" fill="#000000" />
+                  <circle cx="39.5" cy="48.5" r="1.6" fill="#000000" />
+                  <circle cx="46" cy="37" r="1.5" fill="#000000" />
+                </g>
+                <text x="58" y="34" fontFamily="'Cookie', cursive, sans-serif" fontSize="23" fontWeight="bold" fill="#000000">
+                  Buy Me Some Oranges
+                </text>
+              </svg>
+            </a>
+
+            <a
+              href="https://github.com/scrawnysatyr"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden md:inline-flex items-center gap-1.5 rounded-[10px] border border-white/10 bg-[#27272c] px-3 py-1.5 text-xs font-medium text-[#d4d4d8] transition-colors hover:border-[#ff7300] hover:bg-[#303036] hover:text-white"
+            >
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true">
+                <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.57.1.78-.25.78-.55 0-.27-.01-1.17-.02-2.12-3.2.7-3.88-1.36-3.88-1.36-.52-1.33-1.28-1.68-1.28-1.68-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.03 1.76 2.69 1.25 3.35.96.1-.74.4-1.25.73-1.54-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.18-3.09-.12-.29-.51-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11.02 11.02 0 0 1 5.78 0c2.2-1.49 3.17-1.18 3.17-1.18.62 1.59.23 2.76.11 3.05.74.8 1.18 1.83 1.18 3.09 0 4.42-2.69 5.4-5.26 5.68.41.36.78 1.06.78 2.14 0 1.55-.01 2.8-.01 3.18 0 .31.21.66.79.55A11.51 11.51 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z" />
+              </svg>
+              <span>@scrawnysatyr</span>
+            </a>
+
+            {/* Language Switcher */}
+            <LanguageSelector lang={lang} onChange={setLang} />
+          </div>
         </header>
 
         {/* Full-Height Left & Right Ad Rails + Symmetrical 50/50 Center Workspace */}
@@ -394,7 +457,7 @@ export function App() {
 
             <ModelSelector
               t={t}
-              lang={lang}
+              lang={lang === 'th' ? 'th' : 'en'}
               selectedMode={selectedMode}
               webGpuSupported={webGpuSupported}
               persistentGranted={persistentGranted}
@@ -436,7 +499,7 @@ export function App() {
           <div className="flex min-h-0 flex-col">
             <PreviewPane
               t={t}
-              lang={lang}
+              lang={lang === 'th' ? 'th' : 'en'}
               selectedPage={
                 normalizedDoc?.pages.find((p) => p.pageNumber === selectedPageNumber) ?? null
               }
