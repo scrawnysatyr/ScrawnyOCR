@@ -5,9 +5,7 @@ import {
   Download,
   FolderOpen,
   HardDrive,
-  Sparkles,
   Trash2,
-  Zap,
 } from 'lucide-react';
 import type { Translations } from '../i18n/translations';
 import { MODEL_REGISTRY } from '../ai/modelRegistry';
@@ -42,7 +40,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
   lang,
   selectedMode,
   webGpuSupported,
-  persistentGranted,
+  persistentGranted: _persistentGranted,
   totalCacheBytes,
   cacheStatuses,
   downloadingModelId,
@@ -59,21 +57,40 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
     MODEL_REGISTRY.hybrid,
     MODEL_REGISTRY.accurate,
   ];
-  const localInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const activeModel =
+    models.find((m) => m.mode === selectedMode) ?? models[0];
+  const cacheInfo = cacheStatuses[activeModel.id];
+  const isCached = cacheInfo?.isCached ?? false;
+  const isDownloading = downloadingModelId === activeModel.id;
+  const isWebGpuBlocked = activeModel.backend === 'webgpu' && !webGpuSupported;
+  const localInputRef = useRef<HTMLInputElement | null>(null);
 
   return (
-    <section className="rounded-2xl border border-[#222226] bg-[#18181b]/90 p-3.5 shadow-lg backdrop-blur-sm">
-      <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="flex items-center gap-2 text-xs font-bold text-[#ffffff]">
-          <Cpu className="h-3.5 w-3.5 text-[#ff7300]" />
-          {t.modelSectionTitle}
-        </h2>
+    <section className="rounded-xl border border-[#222226] bg-[#18181b]/90 px-3 py-2 shadow-lg backdrop-blur-sm space-y-1.5">
+      {/* Row 1: Compact Model Select + WebGPU Status */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-1 min-w-0 items-center gap-2">
+          <Cpu className="h-4 w-4 shrink-0 text-[#ff7300]" />
+          <select
+            value={selectedMode}
+            disabled={disabled}
+            aria-label={t.modelSectionTitle}
+            onChange={(e) => onSelectMode(e.target.value as ModelMode)}
+            className="min-w-0 flex-1 rounded-[10px] border border-[#222226] bg-[#0c0c0d] px-2.5 py-1.5 text-xs font-semibold text-white outline-none transition-colors focus:border-[#ff7300] disabled:opacity-60 cursor-pointer"
+          >
+            {models.map((m) => (
+              <option key={m.id} value={m.mode}>
+                {lang === 'th' ? m.nameTh : m.name} (~{m.estimatedSizeMB} MB)
+              </option>
+            ))}
+          </select>
+        </div>
 
         <span
-          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${
+          className={`inline-flex shrink-0 items-center gap-1.5 rounded-[8px] border px-2 py-1 text-[10px] font-medium ${
             webGpuSupported
               ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
-              : 'border-[#222226] bg-[#050505] text-[#d4d4d8]'
+              : 'border-[#222226] bg-[#0c0c0d] text-[#d4d4d8]'
           }`}
         >
           <span
@@ -85,180 +102,95 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
         </span>
       </div>
 
-      {/* Mode Cards */}
-      <div className="grid gap-3 md:grid-cols-3">
-        {models.map((model) => {
-          const isSelected = selectedMode === model.mode;
-          const cacheInfo = cacheStatuses[model.id];
-          const isCached = cacheInfo?.isCached ?? false;
-          const isDownloading = downloadingModelId === model.id;
-          const isWebGpuBlocked = model.backend === 'webgpu' && !webGpuSupported;
-
-          return (
-            <div
-              key={model.id}
-              onClick={() => !disabled && onSelectMode(model.mode)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if ((e.key === 'Enter' || e.key === ' ') && !disabled) {
-                  onSelectMode(model.mode);
-                }
-              }}
-              className={`flex flex-col justify-between rounded-xl border p-3 text-left transition-all ${
-                isSelected
-                  ? 'border-[#ff7300] bg-[#ff7300]/10 shadow-[0_0_20px_rgba(255, 115, 0, 0.16)]'
-                  : 'border-[#222226] bg-[#050505]/75 hover:border-[#ff7300]/50 hover:bg-[#141416]/70'
-              } ${disabled ? 'pointer-events-none opacity-65' : 'cursor-pointer'}`}
-            >
-              <div>
-                <div className="flex items-start justify-between gap-1.5">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <div
-                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
-                        isSelected
-                          ? 'bg-[#ff7300] text-[#050505]'
-                          : 'bg-[#18181b] text-[#ff7300]'
-                      }`}
-                    >
-                      {model.mode === 'fast' ? (
-                        <Zap className="h-3.5 w-3.5" />
-                      ) : (
-                        <Sparkles className="h-3.5 w-3.5" />
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="truncate text-xs font-bold text-[#ffffff]">
-                        {lang === 'th' ? model.nameTh : model.name}
-                      </h3>
-                      <p className="truncate text-[10px] font-medium text-[#ff9440]">
-                        {lang === 'th' ? model.badgeTh : model.badge}
-                      </p>
-                    </div>
-                  </div>
-
-                  <span className="font-mono-code shrink-0 rounded-md border border-[#222226] bg-[#18181b] px-1.5 py-0.5 text-[10px] text-[#d4d4d8]">
-                    ~{model.estimatedSizeMB} MB
-                  </span>
-                </div>
-
-                <p className="mt-1.5 line-clamp-2 text-[11px] leading-snug text-[#d4d4d8]">
-                  {lang === 'th' ? model.descriptionTh : model.description}
-                </p>
-
-                {isWebGpuBlocked && (
-                  <p className="mt-1 text-[10px] font-medium text-amber-400">
-                    ⚠ {t.webgpuUnsupported}
-                  </p>
-                )}
-              </div>
-
-              {/* Per-Model Cache Status & Actions */}
-              <div
-                className="mt-2.5 flex flex-wrap items-center justify-between gap-1.5 border-t border-[#222226]/80 pt-2"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {isCached ? (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-400">
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    {t.cachedBadge} ({formatBytes(cacheInfo.cachedBytes)})
-                  </span>
-                ) : (
-                  <span className="text-[11px] text-[#8a8a93]">{t.notCachedBadge}</span>
-                )}
-
-                <div className="flex items-center gap-1.5">
-                  <input
-                    ref={(el) => {
-                      localInputRefs.current[model.id] = el;
-                    }}
-                    type="file"
-                    multiple
-                    accept=".onnx,.txt,.json,.zip"
-                    className="hidden"
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files.length > 0) {
-                        onImportLocalModel(model, e.target.files);
-                      }
-                      e.target.value = '';
-                    }}
-                  />
-
-                  {!isCached && (
-                    <>
-                      <button
-                        type="button"
-                        disabled={disabled || isDownloading}
-                        onClick={() => localInputRefs.current[model.id]?.click()}
-                        className="inline-flex items-center gap-1 rounded-lg border border-[#222226] bg-[#18181b] px-2.5 py-1 text-[11px] font-medium text-[#d4d4d8] transition-colors hover:border-[#ff7300]/60 hover:text-[#ffffff] disabled:opacity-50"
-                      >
-                        <FolderOpen className="h-3 w-3" />
-                        {lang === 'th' ? 'นำเข้าจากเครื่อง' : 'Import Local'}
-                      </button>
-
-                      {model.onnxReady !== false && (
-                        <button
-                          type="button"
-                          disabled={disabled || isDownloading}
-                          onClick={() => onDownloadModel(model)}
-                          className="inline-flex items-center gap-1 rounded-lg border border-[#ff7300]/50 bg-[#ff7300]/15 px-2.5 py-1 text-[11px] font-semibold text-[#ff9440] transition-colors hover:bg-[#ff7300] hover:text-[#050505] disabled:opacity-50"
-                        >
-                          <Download className="h-3 w-3" />
-                          {isDownloading
-                            ? `${t.downloading} ${downloadPercent}%`
-                            : t.downloadAndCache}
-                        </button>
-                      )}
-                    </>
-                  )}
-
-                  {isCached && (
-                    <button
-                      type="button"
-                      disabled={disabled}
-                      onClick={() => onDeleteModelCache(model)}
-                      className="inline-flex items-center gap-1 rounded-lg border border-[#222226] bg-[#18181b] px-2.5 py-1 text-[11px] font-medium text-[#d4d4d8] transition-colors hover:border-red-500/60 hover:text-red-400 disabled:opacity-50"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                      {t.deleteModelCache}
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Persistent Cache Summary Bar */}
-      <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#222226] bg-[#050505]/75 px-3 py-1.5">
-        <div className="flex flex-wrap items-center gap-2 text-[11px] text-[#d4d4d8]">
-          <span className="inline-flex items-center gap-1 font-medium text-[#ffffff]">
+      {/* Row 2: Active Model Cache Status & Inline Actions */}
+      <div className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
+          {isCached ? (
+            <span className="inline-flex items-center gap-1 font-medium text-emerald-400">
+              <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+              {t.cachedBadge} ({formatBytes(cacheInfo.cachedBytes)})
+            </span>
+          ) : (
+            <span className="text-[#8a8a93]">{t.notCachedBadge}</span>
+          )}
+          {isWebGpuBlocked && (
+            <span className="text-[10px] font-medium text-amber-400">
+              ⚠ {t.webgpuUnsupported}
+            </span>
+          )}
+          <span className="inline-flex items-center gap-1 text-[#8a8a93]">
             <HardDrive className="h-3 w-3 text-[#ff7300]" />
-            {t.cacheSectionTitle}:
-          </span>
-          <span>
-            {t.cacheTotalUsed}:{' '}
-            <strong className="font-mono-code text-[#ff7300]">
-              {formatBytes(totalCacheBytes)}
-            </strong>
-          </span>
-          <span className="rounded-md border border-[#222226] bg-[#18181b] px-1.5 py-0.5 text-[10px]">
-            {persistentGranted ? t.cachePersistentOn : t.cachePersistentOff}
+            <span className="font-mono-code text-[#d4d4d8]">{formatBytes(totalCacheBytes)}</span>
           </span>
         </div>
 
-        <button
-          type="button"
-          disabled={disabled || totalCacheBytes === 0}
-          onClick={onClearAllCache}
-          className="inline-flex items-center gap-1 rounded-lg border border-[#222226] bg-[#18181b] px-2.5 py-1 text-[11px] font-medium text-[#d4d4d8] transition-colors hover:border-red-500/60 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <Trash2 className="h-3 w-3" />
-          {t.deleteAllCache}
-        </button>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <input
+            ref={localInputRef}
+            type="file"
+            multiple
+            accept=".onnx,.txt,.json,.zip"
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files && e.target.files.length > 0) {
+                onImportLocalModel(activeModel, e.target.files);
+              }
+              e.target.value = '';
+            }}
+          />
+
+          {!isCached ? (
+            <>
+              <button
+                type="button"
+                disabled={disabled || isDownloading}
+                onClick={() => localInputRef.current?.click()}
+                className="inline-flex items-center gap-1 rounded-[8px] border border-[#222226] bg-[#27272c] px-2 py-1 text-[11px] font-medium text-[#d4d4d8] transition-colors hover:border-[#ff7300] hover:text-[#ffffff] disabled:opacity-50 cursor-pointer"
+              >
+                <FolderOpen className="h-3 w-3" />
+                {lang === 'th' ? 'นำเข้า' : 'Import'}
+              </button>
+
+              {activeModel.onnxReady !== false && (
+                <button
+                  type="button"
+                  disabled={disabled || isDownloading}
+                  onClick={() => onDownloadModel(activeModel)}
+                  className="inline-flex items-center gap-1 rounded-[8px] border border-[#ff7300]/50 bg-[#ff7300]/15 px-2 py-1 text-[11px] font-semibold text-[#ff9440] transition-colors hover:bg-[#ff7300] hover:text-[#050505] disabled:opacity-50 cursor-pointer"
+                >
+                  <Download className="h-3 w-3" />
+                  {isDownloading
+                    ? `${t.downloading} ${downloadPercent}%`
+                    : t.downloadAndCache}
+                </button>
+              )}
+            </>
+          ) : (
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={() => onDeleteModelCache(activeModel)}
+              className="inline-flex items-center gap-1 rounded-[8px] border border-[#222226] bg-[#27272c] px-2 py-1 text-[11px] font-medium text-[#d4d4d8] transition-colors hover:border-red-500/60 hover:text-red-400 disabled:opacity-50 cursor-pointer"
+            >
+              <Trash2 className="h-3 w-3" />
+              {t.deleteModelCache}
+            </button>
+          )}
+
+          {totalCacheBytes > 0 && (
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={onClearAllCache}
+              title={t.deleteAllCache}
+              className="inline-flex items-center gap-1 rounded-[8px] border border-[#222226] bg-[#27272c] px-2 py-1 text-[11px] font-medium text-[#d4d4d8] transition-colors hover:border-red-500/60 hover:text-red-400 disabled:opacity-50 cursor-pointer"
+            >
+              <Trash2 className="h-3 w-3" />
+              {t.deleteAllCache}
+            </button>
+          )}
+        </div>
       </div>
     </section>
   );
 };
-
