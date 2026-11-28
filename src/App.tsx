@@ -18,6 +18,7 @@ import {
 import { TRANSLATIONS } from './i18n/translations';
 import { useTranslatedPack } from './utils/autoTranslate';
 import { LanguageSelector } from './components/LanguageSelector';
+import { LeftAdBanner } from './components/LeftAdBanner';
 import type {
   CachedModelInfo,
   ModelDefinition,
@@ -411,11 +412,7 @@ export function App() {
               <span className="text-[10px] text-[#8a8a93]">Ad</span>
             </div>
             <div className="flex flex-1 min-h-0 flex-col items-center justify-center rounded-xl border border-dashed border-white/15 bg-[#202024]/70 p-3 text-center">
-              <p className="text-xs leading-relaxed text-[#8a8a93]">
-                Ad space
-                <br />
-                160 × 600
-              </p>
+              <LeftAdBanner />
             </div>
           </aside>
 
@@ -519,11 +516,7 @@ export function App() {
               <span className="text-[10px] text-[#8a8a93]">Ad</span>
             </div>
             <div className="flex flex-1 min-h-0 flex-col items-center justify-center rounded-xl border border-dashed border-white/15 bg-[#202024]/70 p-3 text-center">
-              <p className="text-xs leading-relaxed text-[#8a8a93]">
-                Ad space
-                <br />
-                160 × 600
-              </p>
+              <LeftAdBanner />
             </div>
           </aside>
         </div>
